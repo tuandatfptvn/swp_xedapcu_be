@@ -4,6 +4,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -22,6 +23,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+    
+    @Value("${oauth2.frontend.url}")
+    private String frontendUrl;
+    
+    @Value("${oauth2.frontend.redirect-path}")
+    private String redirectPath;
     
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -59,8 +66,13 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 "ROLE_" + user.getRole().name()
         );
         
-        String redirectUrl = String.format("http://localhost:8080/oauth2/redirect?token=%s&email=%s&role=%s",
-                token, user.getEmail(), user.getRole().name());
+        // Build redirect URL from configuration
+        String redirectUrl = String.format("%s%s?token=%s&email=%s&role=%s",
+                frontendUrl,           // From application.properties: http://localhost:5173
+                redirectPath,          // From application.properties: /oauth2/redirect
+                token, 
+                user.getEmail(), 
+                user.getRole().name());
         
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
