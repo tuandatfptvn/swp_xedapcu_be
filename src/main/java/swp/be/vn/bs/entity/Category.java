@@ -17,6 +17,6 @@ public class Category {
     @Column(name = "category_id")
     private Integer categoryId;
     
-    @Column(name = "name", columnDefinition = "nvarchar(255)")
+    @Column(name = "name", length = 255)
     private String name;
 }

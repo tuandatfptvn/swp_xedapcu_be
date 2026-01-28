@@ -41,10 +41,10 @@ public class InspectionBooking {
     @Column(name = "end_time")
     private LocalTime endTime;
     
-    @Column(name = "location", columnDefinition = "nvarchar(500)")
+    @Column(name = "location", length = 500)
     private String location;
     
-    @Column(name = "note", columnDefinition = "nvarchar(1000)")
+    @Column(name = "note", length = 1000)
     private String note;
     
     @Enumerated(EnumType.STRING)

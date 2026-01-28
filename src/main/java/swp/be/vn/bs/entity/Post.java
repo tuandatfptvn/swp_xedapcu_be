@@ -27,7 +27,7 @@ public class Post {
     @JoinColumn(name = "bicycle_id")
     private Bicycle bicycle;
     
-    @Column(name = "title", columnDefinition = "nvarchar(500)", nullable = false)
+    @Column(name = "title", length = 500, nullable = false)
     private String title;
     
     @Column(name = "description", columnDefinition = "TEXT")

@@ -27,7 +27,7 @@ public class UserViolation {
     @JoinColumn(name = "order_id")
     private Order order;
     
-    @Column(name = "violation_type", columnDefinition = "nvarchar(200)")
+    @Column(name = "violation_type", length = 200)
     private String violationType;
     
     @Column(name = "penalty_amount", precision = 18, scale = 2)

@@ -33,7 +33,7 @@ public class DeliverySession {
     @Column(name = "end_time")
     private LocalTime endTime;
     
-    @Column(name = "location", columnDefinition = "nvarchar(500)")
+    @Column(name = "location", length = 500)
     private String location;
     
     @Enumerated(EnumType.STRING)

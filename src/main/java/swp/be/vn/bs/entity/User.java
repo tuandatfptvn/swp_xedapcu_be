@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "\"user\"") // Thêm dấu ngoặc kép để escape reserved keyword
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,8 +14,8 @@ public class User {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Integer userId;
+    @Column(name = "id") // Đổi từ "user_id" thành "id"
+    private Integer userId; // Giữ tên field là userId cho code consistency
     
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
@@ -23,7 +23,7 @@ public class User {
     @Column(name = "password", length = 255)
     private String password;
     
-    @Column(name = "full_name", columnDefinition = "nvarchar(200)")
+    @Column(name = "full_name", length = 200)
     private String fullName;
     
     @Column(name = "phone", length = 20)

@@ -22,13 +22,13 @@ public class InspectionReport {
     @JoinColumn(name = "inspection_id", nullable = false, unique = true)
     private InspectionRequest inspection;
     
-    @Column(name = "frame_status", columnDefinition = "nvarchar(1000)")
+    @Column(name = "frame_status", length = 1000)
     private String frameStatus;
     
-    @Column(name = "brake_status", columnDefinition = "nvarchar(1000)")
+    @Column(name = "brake_status", length = 1000)
     private String brakeStatus;
     
-    @Column(name = "drive_train_status", columnDefinition = "nvarchar(1000)")
+    @Column(name = "drive_train_status", length = 1000)
     private String driveTrainStatus;
     
     @Column(name = "overall_rating")
