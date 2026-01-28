@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Bicycle {
-    
+    //jferjhrfufrujfr
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "bicycle_id")
