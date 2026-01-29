@@ -1,4 +1,7 @@
 package swp.be.vn.bs.repository;
 
-public interface BicycleRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import swp.be.vn.bs.entity.Bicycle;
+
+public interface BicycleRepository extends JpaRepository<Bicycle, Integer> {
 }
