@@ -4,8 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.entity.Category;
-import swp.be.vn.bs.service.CategoryService; // Đảm bảo bạn đã tạo Service này
+import swp.be.vn.bs.dto.CategoryRequest;
+import swp.be.vn.bs.dto.CategoryRespond;
+import swp.be.vn.bs.service.CategoryService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,21 +21,21 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<Category>> getAllCategories() {
+    public ResponseEntity<List<CategoryRespond>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createCategory(@RequestBody Category category) {
+    public ResponseEntity<?> createCategory(@RequestBody CategoryRequest categoryRequest) {
         try {
-            Category savedCategory = categoryService.createCategory(category);
+            CategoryRespond savedCategory = categoryService.createCategory(categoryRequest);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "✅ Category created successfully!");
             response.put("category", savedCategory);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
 
@@ -48,7 +49,7 @@ public class CategoryController {
             response.put("id", id);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("Lỗi xóa: " + e.getMessage());
         }
     }
 }
