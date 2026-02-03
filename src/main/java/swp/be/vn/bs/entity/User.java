@@ -51,6 +51,9 @@ public class User {
     @Column(name = "violation_count")
     private Integer violationCount;
     
+    @Column(name = "last_violation_date")
+    private LocalDateTime lastViolationDate;
+    
     @Column(name = "is_active")
     private Boolean isActive;
     

@@ -42,6 +42,13 @@ public class Transaction {
     @Column(name = "status", length = 50)
     private TransactionStatus status;
     
+    @Column(name = "description", length = 500)
+    private String description;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "related_transaction_id")
+    private Transaction relatedTransaction;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

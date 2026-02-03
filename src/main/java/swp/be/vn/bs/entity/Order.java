@@ -37,6 +37,12 @@ public class Order {
     @Column(name = "total_amount", precision = 18, scale = 2)
     private BigDecimal totalAmount;
     
+    @Column(name = "remaining_amount", precision = 18, scale = 2)
+    private BigDecimal remainingAmount;
+    
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "order_status", length = 50)
     private OrderStatus orderStatus;
