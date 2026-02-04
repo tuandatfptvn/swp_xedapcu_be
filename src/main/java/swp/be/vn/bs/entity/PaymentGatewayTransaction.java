@@ -28,10 +28,10 @@ public class PaymentGatewayTransaction {
     private User user;
     
     @Column(name = "gateway_provider", length = 50)
-    private String gatewayProvider; // VNPAY, MOMO, etc.
+    private String gatewayProvider;
     
     @Column(name = "external_tx_id", length = 200)
-    private String externalTxId; // ID từ VNPay/Momo
+    private String externalTxId;
     
     @Column(name = "amount", precision = 18, scale = 2)
     private BigDecimal amount;
@@ -40,13 +40,13 @@ public class PaymentGatewayTransaction {
     private String currency;
     
     @Column(name = "status", length = 50)
-    private String status; // PENDING, SUCCESS, FAILED, CANCELLED
+    private String status;
     
     @Column(name = "payment_url", length = 1000)
     private String paymentUrl;
     
     @Column(name = "callback_data", columnDefinition = "TEXT")
-    private String callbackData; // JSON response từ gateway
+    private String callbackData;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
