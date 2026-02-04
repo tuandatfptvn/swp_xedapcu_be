@@ -47,18 +47,6 @@ public class DeliverySession {
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
     
-    @Column(name = "seller_confirmed")
-    private Boolean sellerConfirmed;
-    
-    @Column(name = "seller_confirmed_at")
-    private LocalDateTime sellerConfirmedAt;
-    
-    @Column(name = "buyer_confirmed")
-    private Boolean buyerConfirmed;
-    
-    @Column(name = "buyer_confirmed_at")
-    private LocalDateTime buyerConfirmedAt;
-    
     @PrePersist
     protected void onCreate() {
         if (status == null) {

@@ -35,19 +35,12 @@ public class Transaction {
     private BigDecimal amount;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", length = 50)
-    private TransactionType transactionType;
+    @Column(name = "type", length = 50)
+    private TransactionType type;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)
     private TransactionStatus status;
-    
-    @Column(name = "description", length = 500)
-    private String description;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "related_transaction_id")
-    private Transaction relatedTransaction;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;

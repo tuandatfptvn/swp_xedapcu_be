@@ -40,12 +40,9 @@ public class Order {
     @Column(name = "remaining_amount", precision = 18, scale = 2)
     private BigDecimal remainingAmount;
     
-    @Column(name = "expires_at")
-    private LocalDateTime expiresAt;
-    
     @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", length = 50)
-    private OrderStatus orderStatus;
+    @Column(name = "status", length = 50)
+    private OrderStatus status;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -53,8 +50,8 @@ public class Order {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (orderStatus == null) {
-            orderStatus = OrderStatus.PENDING;
+        if (status == null) {
+            status = OrderStatus.PENDING;
         }
     }
 }

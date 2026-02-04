@@ -39,9 +39,6 @@ public class User {
     @Column(name = "provider_id", length = 255)
     private String providerId;
     
-    @Column(name = "name", length = 255)
-    private String name;
-    
     @Column(name = "picture", length = 500)
     private String picture;
     
@@ -50,9 +47,6 @@ public class User {
     
     @Column(name = "violation_count")
     private Integer violationCount;
-    
-    @Column(name = "last_violation_date")
-    private LocalDateTime lastViolationDate;
     
     @Column(name = "is_active")
     private Boolean isActive;
@@ -68,6 +62,9 @@ public class User {
         }
         if (isActive == null) {
             isActive = true;
+        }
+        if (ratingScore == null) {
+            ratingScore = 5.0f;
         }
     }
 }

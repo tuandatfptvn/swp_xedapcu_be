@@ -46,15 +46,15 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         if (user == null) {
             user = User.builder()
                     .email(email)
-                    .name(name)
+                    .fullName(name)
                     .picture(picture)
                     .provider("google")
                     .providerId(googleId)
-                    .role(Role.BUYER)
+                    .role(Role.USER)
                     .build();
             userRepository.save(user);
         } else {
-            user.setName(name);
+            user.setFullName(name);
             user.setPicture(picture);
             user.setProvider("google");
             user.setProviderId(googleId);

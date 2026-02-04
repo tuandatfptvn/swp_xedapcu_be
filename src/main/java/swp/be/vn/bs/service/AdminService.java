@@ -22,7 +22,7 @@ public class AdminService {
                         .email(user.getEmail())
                         .role(user.getRole())
                         .provider(user.getProvider())
-                        .name(user.getName())
+                        .fullName(user.getFullName())
                         .picture(user.getPicture())
                         .build())
                 .collect(Collectors.toList());
@@ -39,7 +39,7 @@ public class AdminService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .provider(user.getProvider())
-                .name(user.getName())
+                .fullName(user.getFullName())
                 .picture(user.getPicture())
                 .build();
     }
@@ -59,7 +59,7 @@ public class AdminService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .provider(user.getProvider())
-                .name(user.getName())
+                .fullName(user.getFullName())
                 .picture(user.getPicture())
                 .build();
     }

@@ -16,8 +16,8 @@ public class PaymentGatewayTransaction {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "gateway_transaction_id")
-    private Integer gatewayTransactionId;
+    @Column(name = "gateway_tx_id")
+    private Integer gatewayTxId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id", nullable = false)
@@ -30,8 +30,8 @@ public class PaymentGatewayTransaction {
     @Column(name = "gateway_provider", length = 50)
     private String gatewayProvider; // VNPAY, MOMO, etc.
     
-    @Column(name = "gateway_transaction_id_external", length = 200)
-    private String gatewayTransactionIdExternal; // ID từ VNPay/Momo
+    @Column(name = "external_tx_id", length = 200)
+    private String externalTxId; // ID từ VNPay/Momo
     
     @Column(name = "amount", precision = 18, scale = 2)
     private BigDecimal amount;

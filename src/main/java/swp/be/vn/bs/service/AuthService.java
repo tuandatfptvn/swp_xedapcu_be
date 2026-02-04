@@ -38,6 +38,8 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
+                .fullName(request.getFullName())
+                .phone(request.getPhone())
                 .provider("local")
                 .build();
         

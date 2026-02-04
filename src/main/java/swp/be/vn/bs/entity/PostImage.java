@@ -23,4 +23,20 @@ public class PostImage {
     
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+    
+    @Column(name = "sort_order")
+    private Integer sortOrder;
+    
+    @Column(name = "is_thumbnail")
+    private Boolean isThumbnail;
+    
+    @PrePersist
+    protected void onCreate() {
+        if (sortOrder == null) {
+            sortOrder = 0;
+        }
+        if (isThumbnail == null) {
+            isThumbnail = false;
+        }
+    }
 }
