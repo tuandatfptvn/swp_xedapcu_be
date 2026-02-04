@@ -1,6 +1,7 @@
-package swp.be.vn.bs.dto;
+package swp.be.vn.bs.dto.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import swp.be.vn.bs.entity.Role;
@@ -8,6 +9,9 @@ import swp.be.vn.bs.entity.Role;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateRoleRequest {
+@Builder
+public class AuthResponse {
+    private String token;
+    private String email;
     private Role role;
 }

@@ -2,8 +2,8 @@ package swp.be.vn.bs.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import swp.be.vn.bs.dto.UpdateRoleRequest;
-import swp.be.vn.bs.dto.UserResponse;
+import swp.be.vn.bs.dto.request.UpdateRoleRequest;
+import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.entity.User;
 import swp.be.vn.bs.repository.UserRepository;
 

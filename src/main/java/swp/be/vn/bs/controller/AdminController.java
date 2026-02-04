@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.dto.UpdateRoleRequest;
-import swp.be.vn.bs.dto.UserResponse;
+import swp.be.vn.bs.dto.request.UpdateRoleRequest;
+import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.service.AdminService;
 
 import java.util.HashMap;

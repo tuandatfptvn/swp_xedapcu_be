@@ -8,9 +8,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import swp.be.vn.bs.config.JwtTokenProvider;
-import swp.be.vn.bs.dto.AuthResponse;
-import swp.be.vn.bs.dto.LoginRequest;
-import swp.be.vn.bs.dto.RegisterRequest;
+import swp.be.vn.bs.dto.response.AuthResponse;
+import swp.be.vn.bs.dto.request.LoginRequest;
+import swp.be.vn.bs.dto.request.RegisterRequest;
 import swp.be.vn.bs.entity.User;
 import swp.be.vn.bs.repository.UserRepository;
 
