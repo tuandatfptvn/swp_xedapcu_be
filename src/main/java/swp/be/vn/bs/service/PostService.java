@@ -18,6 +18,8 @@ import swp.be.vn.bs.repository.PostRepository;
 import swp.be.vn.bs.repository.UserRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +34,9 @@ public class PostService {
     
     @Autowired
     private BicycleRepository bicycleRepository;
+    
+    @Autowired
+    private WalletService walletService;
     
     public Page<PostResponse> getAllPosts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -63,6 +68,22 @@ public class PostService {
             throw new RuntimeException("You can only create posts for your own bicycles");
         }
         
+        // Tính post fee (5% giá xe)
+        BigDecimal postFee = request.getPrice()
+                .multiply(new BigDecimal("0.05"))
+                .setScale(2, RoundingMode.HALF_UP);
+        
+        // Check balance và charge fee
+        if (!walletService.checkBalance(seller.getUserId(), postFee)) {
+            throw new RuntimeException(
+                String.format("Insufficient balance to pay post fee. Required: %s VND (5%% of %s)", 
+                    postFee, request.getPrice())
+            );
+        }
+        
+        walletService.chargeFee(seller.getUserId(), postFee, 
+            "Post fee (5%) for listing bicycle: " + request.getTitle());
+        
         Post post = new Post();
         post.setSeller(seller);
         post.setBicycle(bicycle);
@@ -71,7 +92,7 @@ public class PostService {
         post.setPrice(request.getPrice());
         post.setStatus(PostStatus.ACTIVE);
         post.setIsInspected(false);
-        post.setPostFee(BigDecimal.ZERO);
+        post.setPostFee(postFee);
         
         Post savedPost = postRepository.save(post);
         return mapToResponse(savedPost);
@@ -124,6 +145,59 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return postRepository.findByTitleContainingIgnoreCase(keyword, pageable)
                 .map(this::mapToResponse);
+    }
+    
+    /**
+     * Khóa post trong X phút (khi buyer đặt cọc)
+     */
+    @Transactional
+    public void lockPost(Integer postId, Integer buyerUserId, int minutesToLock) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with ID: " + postId));
+        
+        post.setStatus(PostStatus.RESERVED);
+        post.setReservedUntil(LocalDateTime.now().plusMinutes(minutesToLock));
+        post.setReservedBy(buyerUserId);
+        
+        postRepository.save(post);
+    }
+    
+    /**
+     * Mở khóa post (khi hủy cọc hoặc hết thời gian)
+     */
+    @Transactional
+    public void unlockPost(Integer postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with ID: " + postId));
+        
+        post.setStatus(PostStatus.ACTIVE);
+        post.setReservedUntil(null);
+        post.setReservedBy(null);
+        
+        postRepository.save(post);
+    }
+    
+    /**
+     * Kiểm tra post có sẵn để mua không
+     */
+    public boolean isPostAvailable(Integer postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with ID: " + postId));
+        
+        if (post.getStatus() == PostStatus.SOLD || post.getStatus() == PostStatus.CANCELLED) {
+            return false;
+        }
+        
+        if (post.getStatus() == PostStatus.RESERVED) {
+            if (post.getReservedUntil() != null && post.getReservedUntil().isAfter(LocalDateTime.now())) {
+                return false;
+            } else {
+                unlockPost(postId);
+                return true;
+            }
+        }
+        
+        return post.getStatus() == PostStatus.ACTIVE;
     }
     
     private PostResponse mapToResponse(Post post) {

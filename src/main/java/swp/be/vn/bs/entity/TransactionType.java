@@ -7,5 +7,7 @@ public enum TransactionType {
     WITHDRAWAL,
     POST_FEE,
     INSPECTION_FEE,
-    PENALTY
+    PENALTY,
+    FEE,
+    TRANSFER
 }
