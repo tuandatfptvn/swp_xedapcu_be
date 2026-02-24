@@ -64,6 +64,9 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/login/oauth2/**").permitAll()
+
+
+                .requestMatchers("/api/payment/vnpay-ipn").permitAll()
                 // Swagger UI endpoints
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()

@@ -38,7 +38,7 @@ public class BicycleService {
         bicycle.setGroupset(request.getGroupset());
         bicycle.setWheelSize(request.getWheelSize());
         bicycle.setConditionPercent(request.getConditionPercent());
-        bicycle.setCategory(category); // Gán thực thể Category vào Bicycle
+        bicycle.setCategory(category);
 
         Bicycle savedBicycle = bicycleRepository.save(bicycle);
         return mapToRespond(savedBicycle);
