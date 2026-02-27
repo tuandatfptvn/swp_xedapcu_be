@@ -60,15 +60,26 @@ public class SecurityConfig {
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable())
             .authorizeHttpRequests(auth -> auth
+                // Root path
+                .requestMatchers("/").permitAll()
+                // Auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/login/oauth2/**").permitAll()
+                // Actuator endpoints
+                .requestMatchers("/actuator/**").permitAll()
                 // Swagger UI endpoints
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/api-docs/**").permitAll()
+                // Public API endpoints
+                .requestMatchers("/api/posts").permitAll()
+                .requestMatchers("/api/posts/**").permitAll()
+                .requestMatchers("/api/bicycles").permitAll()
+                .requestMatchers("/api/bicycles/**").permitAll()
+                .requestMatchers("/api/categories/**").permitAll()
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
