@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swp.be.vn.bs.dto.TransactionResponse;
 import swp.be.vn.bs.entity.Transaction;
 import swp.be.vn.bs.entity.TransactionStatus;
 import swp.be.vn.bs.entity.TransactionType;
@@ -48,7 +49,7 @@ public class WalletService {
     }
 
 
-    // 1. Tạo giao dịch CHỜ THANH TOÁN
+
     @Transactional
     public Transaction createPendingDeposit(Integer userId, BigDecimal amount) {
         Wallet wallet = getWalletByUserId(userId);
@@ -63,18 +64,18 @@ public class WalletService {
         return transactionRepository.save(transaction);
     }
 
-    // 2. Xử lý IPN khi VNPay gọi về báo kết quả
+
     @Transactional
     public void processVnPayCallback(Integer transactionId, BigDecimal vnpAmount, String vnpResponseCode) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Giao dịch không tồn tại"));
 
-        // CASE 1: Chống nạp đúp (Idempotency) - Chỉ xử lý nếu đang PENDING
+
         if (transaction.getStatus() != TransactionStatus.PENDING) {
             throw new RuntimeException("Giao dịch này đã được xử lý trước đó!");
         }
 
-        // CASE 2: Kiểm tra dữ liệu khớp tiền không (VNPay trả về x100)
+
         BigDecimal expectedAmount = transaction.getAmount().multiply(new BigDecimal(100));
         if (expectedAmount.compareTo(vnpAmount) != 0) {
             transaction.setStatus(TransactionStatus.FAILED);
@@ -82,15 +83,15 @@ public class WalletService {
             throw new RuntimeException("Bảo mật: Số tiền không khớp!");
         }
 
-        // CASE 3: Kiểm tra mã trạng thái giao dịch
+
         if ("00".equals(vnpResponseCode)) {
-            // Thanh toán thành công -> Cộng tiền
+
             Wallet wallet = transaction.getWallet();
             wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
             walletRepository.save(wallet);
             transaction.setStatus(TransactionStatus.COMPLETED);
         } else {
-            // Thanh toán thất bại hoặc người dùng hủy
+
             transaction.setStatus(TransactionStatus.FAILED);
         }
 
@@ -99,15 +100,17 @@ public class WalletService {
 
 
     @Transactional
-    public Transaction withdraw(Integer userId, BigDecimal amount, String bankAccount) {
+    public TransactionResponse withdraw(Integer userId, BigDecimal amount, String bankAccount) {
         Wallet wallet = getWalletByUserId(userId);
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient balance");
         }
 
+
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
+
 
         Transaction transaction = new Transaction();
         transaction.setWallet(wallet);
@@ -115,13 +118,33 @@ public class WalletService {
         transaction.setAmount(amount);
         transaction.setTransactionType(TransactionType.WITHDRAWAL);
         transaction.setStatus(TransactionStatus.COMPLETED);
+        transaction.setBankAccount(bankAccount);
 
-        return transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.save(transaction);
+
+
+        return mapToResponse(savedTransaction);
     }
 
 
-    public Page<Transaction> getTransactions(Integer userId, Pageable pageable) {
+    public Page<TransactionResponse> getTransactions(Integer userId, Pageable pageable) {
         Wallet wallet = getWalletByUserId(userId);
-        return transactionRepository.findByWallet_WalletIdOrderByCreatedAtDesc(wallet.getWalletId(), pageable);
+        Page<Transaction> transactions = transactionRepository.findByWallet_WalletIdOrderByCreatedAtDesc(wallet.getWalletId(), pageable);
+
+
+        return transactions.map(this::mapToResponse);
+    }
+
+
+    private TransactionResponse mapToResponse(Transaction t) {
+        return TransactionResponse.builder()
+                .transactionId(t.getTransactionId())
+                .amount(t.getAmount())
+                .transactionType(t.getTransactionType() != null ? t.getTransactionType().name() : null)
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
+                .createdAt(t.getCreatedAt())
+                .bankAccount(t.getBankAccount())
+
+                .build();
     }
 }
