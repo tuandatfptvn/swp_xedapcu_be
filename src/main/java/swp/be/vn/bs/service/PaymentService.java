@@ -1,11 +1,13 @@
 package swp.be.vn.bs.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -28,6 +30,9 @@ public class PaymentService {
 
     @Value("${vnpay.ipnUrl}")
     private String vnp_IpnUrl;
+
+    @Autowired
+    private WalletService walletService;
 
 
     public String createVnPayUrl(Integer transactionId, long amount, HttpServletRequest request) throws Exception {
@@ -145,5 +150,20 @@ public class PaymentService {
             sb.append(String.format("%02x", b & 0xff));
         }
         return sb.toString();
+    }
+
+    public void updateTransactionStatus(Map<String, String> params){
+        String responseCode = params.get("vnp_ResponseCode");
+        String txnRef = params.get("vnp_TxnRef");
+        String vnpAmountStr = params.get("vnp_Amount");
+        try {
+            Integer transactionId = Integer.parseInt(txnRef);
+            BigDecimal vnpAmount = new BigDecimal(vnpAmountStr);
+
+            walletService.processVnPayCallback(transactionId,vnpAmount,responseCode);
+        } catch (Exception e) {
+            System.err.println("Looix update DB: " + e.getMessage());
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

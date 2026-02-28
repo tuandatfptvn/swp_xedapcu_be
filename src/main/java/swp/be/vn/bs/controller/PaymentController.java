@@ -51,20 +51,23 @@ public class PaymentController {
 
     @GetMapping("/vnpay-return")
     public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
+        try {
+            paymentService.updateTransactionStatus(params);
 
-        String responseCode = params.get("vnp_ResponseCode");
-        String txnRef = params.get("vnp_TxnRef");
+            String responseCode = params.get("vnp_ResponseCode");
+            String txnRef = params.get("vnp_TxnRef");
 
-        Map<String, String> result = new HashMap<>();
-
-        if ("00".equals(responseCode)) {
-            result.put("status", "success");
-            result.put("transactionId", txnRef);
-        } else {
-            result.put("status", "failed");
+            Map<String, String> result = new HashMap<>();
+            if ("00".equals(responseCode)) {
+                result.put("status", "success");
+                result.put("transactionId", txnRef);
+            } else {
+                result.put("status", "failed");
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi xử lý return: " + e.getMessage());
         }
-
-        return ResponseEntity.ok(result);
     }
 
 
@@ -79,13 +82,7 @@ public class PaymentController {
                 return ResponseEntity.ok(response);
             }
 
-            Integer transactionId = Integer.parseInt(params.get("vnp_TxnRef"));
-            BigDecimal vnpAmount = new BigDecimal(params.get("vnp_Amount"));
-            String vnpResponseCode = params.get("vnp_ResponseCode");
-
-
-            walletService.processVnPayCallback(transactionId, vnpAmount, vnpResponseCode);
-
+            paymentService.updateTransactionStatus(params);
 
             response.put("RspCode", "00");
             response.put("Message", "Confirm Success");
