@@ -3,9 +3,9 @@ package swp.be.vn.bs.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.dto.AuthResponse;
-import swp.be.vn.bs.dto.LoginRequest;
-import swp.be.vn.bs.dto.RegisterRequest;
+import swp.be.vn.bs.dto.response.AuthResponse;
+import swp.be.vn.bs.dto.request.LoginRequest;
+import swp.be.vn.bs.dto.request.RegisterRequest;
 import swp.be.vn.bs.service.AuthService;
 
 @RestController

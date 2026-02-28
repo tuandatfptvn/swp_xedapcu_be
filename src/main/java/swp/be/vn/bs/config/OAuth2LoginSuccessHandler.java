@@ -46,15 +46,15 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         if (user == null) {
             user = User.builder()
                     .email(email)
-                    .name(name)
+                    .fullName(name)
                     .picture(picture)
                     .provider("google")
                     .providerId(googleId)
-                    .role(Role.BUYER)
+                    .role(Role.USER)
                     .build();
             userRepository.save(user);
         } else {
-            user.setName(name);
+            user.setFullName(name);
             user.setPicture(picture);
             user.setProvider("google");
             user.setProviderId(googleId);
@@ -66,13 +66,13 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 "ROLE_" + user.getRole().name()
         );
         
-        // Build redirect URL from configuration
         String redirectUrl = String.format("%s%s?token=%s&email=%s&role=%s",
-                frontendUrl,           // From application.properties: http://localhost:5173
-                redirectPath,          // From application.properties: /oauth2/redirect
-                token, 
-                user.getEmail(), 
-                user.getRole().name());
+                frontendUrl,
+                redirectPath,
+                token,
+                user.getEmail(),
+                user.getRole().name()
+        );
         
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

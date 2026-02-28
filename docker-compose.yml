@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Spring Boot Application
+  bike-selling-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bike-selling-api
+    ports:
+      - "8080:8080"
+    environment:
+      # Supabase Database Connection
+      SPRING_DATASOURCE_URL: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0&preparedStatementCacheQueries=0
+      SPRING_DATASOURCE_USERNAME: postgres.puquylitonftpyyusgqj
+      SPRING_DATASOURCE_PASSWORD: Xedapcu@1234
+      
+      # JWT Configuration
+      JWT_SECRET: YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnoughForHS512AlgorithmToWorkProperly1234567890
+      JWT_EXPIRATION: 86400000
+      
+      # Google OAuth2 (Optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-client-id}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-client-secret}
+      
+      # JVM Options
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - bike-selling-network
+
+networks:
+  bike-selling-network:
+    driver: bridge

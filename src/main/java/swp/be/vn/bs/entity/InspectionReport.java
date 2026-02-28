@@ -28,8 +28,8 @@ public class InspectionReport {
     @Column(name = "brake_status", length = 1000)
     private String brakeStatus;
     
-    @Column(name = "drive_train_status", length = 1000)
-    private String driveTrainStatus;
+    @Column(name = "drivetrain_status", length = 1000)
+    private String drivetrainStatus;
     
     @Column(name = "overall_rating")
     private Integer overallRating;
