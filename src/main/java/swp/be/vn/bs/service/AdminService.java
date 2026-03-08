@@ -19,6 +19,7 @@ public class AdminService {
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(user -> UserResponse.builder()
+                        .userId(user.getUserId())
                         .email(user.getEmail())
                         .role(user.getRole())
                         .provider(user.getProvider())
@@ -36,6 +37,7 @@ public class AdminService {
         userRepository.save(user);
         
         return UserResponse.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .provider(user.getProvider())
@@ -56,6 +58,7 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         
         return UserResponse.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .provider(user.getProvider())
