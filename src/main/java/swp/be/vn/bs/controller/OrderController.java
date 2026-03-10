@@ -148,4 +148,40 @@ public class OrderController {
                     .body("Error completing order: " + e.getMessage());
         }
     }
+
+    /**
+     * POST /api/orders/{orderId}/report-buyer-no-show
+     * Seller báo cáo Buyer không đến: Buyer mất cọc, Seller được bồi thường
+     */
+    @PostMapping("/{orderId}/report-buyer-no-show")
+    public ResponseEntity<?> reportBuyerNoShow(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String sellerEmail = authentication.getName();
+            orderService.reportBuyerNoShow(orderId, sellerEmail);
+            return ResponseEntity.ok("Successfully reported buyer no-show. Deposit transferred and violation recorded.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error reporting buyer no-show: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/orders/{orderId}/report-seller-no-show
+     * Buyer báo cáo Seller không đến: Buyer được hoàn cọc, Seller bị phạt Violation
+     */
+    @PostMapping("/{orderId}/report-seller-no-show")
+    public ResponseEntity<?> reportSellerNoShow(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String buyerEmail = authentication.getName();
+            orderService.reportSellerNoShow(orderId, buyerEmail);
+            return ResponseEntity.ok("Successfully reported seller no-show. Deposit refunded and violation recorded.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error reporting seller no-show: " + e.getMessage());
+        }
+    }
 }

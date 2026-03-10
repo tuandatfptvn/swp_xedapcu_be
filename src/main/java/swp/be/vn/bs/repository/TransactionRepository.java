@@ -6,14 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import swp.be.vn.bs.entity.Transaction;
 
-@Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
-    Page<Transaction> findByWallet_WalletIdOrderByCreatedAtDesc(Integer walletId, Pageable pageable);
 import java.util.List;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
     
+    Page<Transaction> findByWallet_WalletIdOrderByCreatedAtDesc(Integer walletId, Pageable pageable);
+
     List<Transaction> findByUser_UserId(Integer userId);
     
     List<Transaction> findByUser_Email(String email);

@@ -39,6 +39,9 @@ public class OrderService {
     
     @Autowired
     private PostService postService;
+
+    @Autowired
+    private ViolationService violationService;
     
     /**
      * Tạo đơn hàng và đặt cọc 20%
@@ -289,5 +292,65 @@ public class OrderService {
                 .seller(sellerInfo)
                 .post(postInfo)
                 .build();
+
+    }
+    //1. Seller bao cao : Buyer khong den
+    @Transactional
+    public void reportBuyerNoShow(Integer orderId, String sellerEmail){
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        if(!order.getPost().getSeller().getEmail().equals(sellerEmail)){
+          throw new RuntimeException("Only the seller of the post has the right to report a no-show buyer");
+
+        }
+
+        if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
+            throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
+        }
+
+        User buyer = order.getBuyer();
+        User seller = order.getPost().getSeller();
+        BigDecimal depositAmount = order.getDepositAmount();
+
+        // Tru co cu buyer va chuyen khoan den bu cho seller
+        walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
+        walletService.deposit(seller.getUserId(), depositAmount);
+
+        //ghi nhan vi pham ( phat Buyer)
+        violationService.recordViolation(buyer, order, "BUYER_NO_SHOW", depositAmount);
+
+        // xu ly tran thai ORDER va POST : huy don, mo lai bai dang
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        postService.unlockPost(order.getPost().getPostId());
+    }
+
+    // 2. Buyer bao cao : Seller khong den
+    @Transactional
+    public void reportSellerNoShow(Integer orderId, String buyerEmail){
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+         if(!order.getBuyer().getEmail().equals(buyerEmail)){
+             throw  new RuntimeException("Only the buyer of the order has the right to report a no-show seller");
+
+         }
+
+         if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
+             throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
+         }
+
+         User buyer = order.getBuyer();
+         User seller = order.getPost().getSeller();
+         BigDecimal depositAmount = order.getDepositAmount();
+
+         // Hoan tra 100% tien co lai cho Buyer
+        walletService.unlockBalance(buyer.getUserId(), depositAmount);
+
+        // Ghi nhan vi pham cho seller
+        violationService.recordViolation(seller, order, "SELLER_NO_SHOW", BigDecimal.ZERO);
+
+        // Huy don va mo bai lai
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        postService.unlockPost(order.getPost().getPostId());
     }
 }
