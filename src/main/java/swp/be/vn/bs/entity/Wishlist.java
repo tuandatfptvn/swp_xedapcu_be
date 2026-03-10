@@ -25,7 +25,6 @@ public class Wishlist {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
     
-    // Composite Primary Key Class
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

@@ -1,4 +1,4 @@
-package swp.be.vn.bs.dto;
+package swp.be.vn.bs.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

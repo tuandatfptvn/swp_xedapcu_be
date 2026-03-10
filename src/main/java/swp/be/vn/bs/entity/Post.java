@@ -46,6 +46,12 @@ public class Post {
     @Column(name = "post_fee", precision = 18, scale = 2)
     private BigDecimal postFee;
     
+    @Column(name = "reserved_until")
+    private LocalDateTime reservedUntil;
+    
+    @Column(name = "reserved_by")
+    private Integer reservedBy;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

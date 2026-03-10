@@ -26,6 +26,9 @@ public class Wallet {
     @Column(name = "balance", precision = 18, scale = 2)
     private BigDecimal balance;
     
+    @Column(name = "locked_balance", precision = 18, scale = 2)
+    private BigDecimal lockedBalance;
+    
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
@@ -33,6 +36,9 @@ public class Wallet {
     protected void onCreate() {
         if (balance == null) {
             balance = BigDecimal.ZERO;
+        }
+        if (lockedBalance == null) {
+            lockedBalance = BigDecimal.ZERO;
         }
         updatedAt = LocalDateTime.now();
     }

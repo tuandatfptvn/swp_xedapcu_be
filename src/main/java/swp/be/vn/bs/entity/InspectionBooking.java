@@ -25,10 +25,6 @@ public class InspectionBooking {
     private Post post;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private User seller;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inspector_id")
     private User inspector;
     
@@ -43,9 +39,6 @@ public class InspectionBooking {
     
     @Column(name = "location", length = 500)
     private String location;
-    
-    @Column(name = "note", length = 1000)
-    private String note;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)

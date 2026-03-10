@@ -9,4 +9,16 @@ import swp.be.vn.bs.entity.Transaction;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
     Page<Transaction> findByWallet_WalletIdOrderByCreatedAtDesc(Integer walletId, Pageable pageable);
+import java.util.List;
+
+@Repository
+public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
+    
+    List<Transaction> findByUser_UserId(Integer userId);
+    
+    List<Transaction> findByUser_Email(String email);
+    
+    List<Transaction> findByWallet_WalletId(Integer walletId);
+    
+    List<Transaction> findByOrder_OrderId(Integer orderId);
 }

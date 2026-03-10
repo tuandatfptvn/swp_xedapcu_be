@@ -2,8 +2,8 @@ package swp.be.vn.bs.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import swp.be.vn.bs.dto.CategoryRequest;
-import swp.be.vn.bs.dto.CategoryRespond;
+import swp.be.vn.bs.dto.request.CategoryRequest;
+import swp.be.vn.bs.dto.response.CategoryRespond;
 import swp.be.vn.bs.entity.Category;
 import swp.be.vn.bs.repository.CategoryRepository;
 

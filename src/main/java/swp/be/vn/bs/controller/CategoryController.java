@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.dto.CategoryRequest;
-import swp.be.vn.bs.dto.CategoryRespond;
+import swp.be.vn.bs.dto.request.CategoryRequest;
+import swp.be.vn.bs.dto.response.CategoryRespond;
 import swp.be.vn.bs.service.CategoryService;
 
 import java.util.HashMap;
