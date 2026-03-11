@@ -69,6 +69,7 @@ public class PostService {
         }
         
         // Tính post fee (5% giá xe)
+        double feeRate = seller.getViolationCount() > 0 ? 0.10 : 0.05;
         BigDecimal postFee = request.getPrice()
                 .multiply(new BigDecimal("0.05"))
                 .setScale(2, RoundingMode.HALF_UP);
@@ -81,8 +82,8 @@ public class PostService {
             );
         }
         
-        walletService.chargeFee(seller.getUserId(), postFee, 
-            "Post fee (5%) for listing bicycle: " + request.getTitle());
+        walletService.chargeFee(seller.getUserId(), postFee,
+                String.format("Post fee (%s%%) for listing bicycle: %s", (feeRate * 100), request.getTitle()));
         
         Post post = new Post();
         post.setSeller(seller);

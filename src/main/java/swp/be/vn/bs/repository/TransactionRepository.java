@@ -12,7 +12,7 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
     
     Page<Transaction> findByWallet_WalletIdOrderByCreatedAtDesc(Integer walletId, Pageable pageable);
-    
+
     List<Transaction> findByUser_UserId(Integer userId);
     
     List<Transaction> findByUser_Email(String email);

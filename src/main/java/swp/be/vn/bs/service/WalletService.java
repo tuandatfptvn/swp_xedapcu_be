@@ -32,6 +32,13 @@ public class WalletService {
     @Autowired
     private TransactionService transactionService;
 
+    // =========================================================
+    // 1. CÁC HÀM GET & KIỂM TRA WALLET
+    // =========================================================
+
+    /**
+     * Lấy hoặc tạo wallet cho user (nếu chưa có)
+     */
     @Transactional
     public Wallet getOrCreateWallet(User user) {
         return walletRepository.findByUser_UserId(user.getUserId())
@@ -44,7 +51,10 @@ public class WalletService {
                 });
     }
 
-    public Wallet getWalletByUserId(Integer userId) {
+    /**
+     * Lấy wallet theo userId
+     */
+    public Wallet getWalletByUserId(Integer userId){
         return walletRepository.findByUser_UserId(userId)
                 .orElseGet(() -> {
                     User user = userRepository.findById(userId)
@@ -57,38 +67,29 @@ public class WalletService {
                 });
     }
 
+    /**
+     * Lấy wallet theo email
+     */
+    public Wallet getWalletByEmail(String email) {
+        return walletRepository.findByUser_Email(email)
+                .orElseThrow(() -> new RuntimeException("Wallet not found for email: " + email));
+    }
+
     public BigDecimal getBalance(Integer userId) {
         return getWalletByUserId(userId).getBalance();
     }
 
+    /**
+     * Kiểm tra user có đủ tiền không
+     */
     public boolean checkBalance(Integer userId, BigDecimal amount) {
         Wallet wallet = getWalletByUserId(userId);
         return wallet.getBalance().compareTo(amount) >= 0;
     }
 
-    @Transactional
-    public Transaction deposit(Integer userId, BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Deposit amount must be greater than 0");
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-
-        Wallet wallet = getOrCreateWallet(user);
-
-        wallet.setBalance(wallet.getBalance().add(amount));
-        walletRepository.save(wallet);
-
-        return transactionService.createTransaction(
-                wallet,
-                user,
-                null,
-                amount,
-                TransactionType.DEPOSIT,
-                "Deposit to wallet"
-        );
-    }
+    // =========================================================
+    // 2. CÁC HÀM GIAO DỊCH TIỀN (NẠP, RÚT, TRỪ PHÍ)
+    // =========================================================
 
     @Transactional
     public Transaction createPendingDeposit(Integer userId, BigDecimal amount) {
@@ -99,37 +100,31 @@ public class WalletService {
         transaction.setUser(wallet.getUser());
         transaction.setAmount(amount);
         transaction.setType(TransactionType.DEPOSIT);
-        transaction.setStatus(TransactionStatus.PENDING);
+        transaction.setStatus(TransactionStatus.PENDING); // BẮT BUỘC: Đang chờ, không cộng tiền lúc này
 
         return transactionRepository.save(transaction);
     }
 
+    /**
+     * Nạp tiền vào wallet
+     */
     @Transactional
-    public void processVnPayCallback(Integer transactionId, BigDecimal vnpAmount, String vnpResponseCode) {
-        Transaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
-
-        if (transaction.getStatus() != TransactionStatus.PENDING) {
-            throw new RuntimeException("Transaction already processed");
+    public Transaction deposit(Integer userId, BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Deposit amount must be greater than 0");
         }
-
-        BigDecimal expectedAmount = transaction.getAmount().multiply(new BigDecimal(100));
-        if (expectedAmount.compareTo(vnpAmount) != 0) {
-            transaction.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(transaction);
-            throw new RuntimeException("Amount mismatch");
-        }
-
-        if ("00".equals(vnpResponseCode)) {
-            Wallet wallet = transaction.getWallet();
-            wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
-            walletRepository.save(wallet);
-            transaction.setStatus(TransactionStatus.COMPLETED);
-        } else {
-            transaction.setStatus(TransactionStatus.FAILED);
-        }
-
-        transactionRepository.save(transaction);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        
+        Wallet wallet = getOrCreateWallet(user);
+        
+        wallet.setBalance(wallet.getBalance().add(amount));
+        walletRepository.save(wallet);
+        
+        return transactionService.createTransaction(
+            wallet, user, null, amount, TransactionType.DEPOSIT, "Deposit to wallet"
+        );
     }
 
     @Transactional
@@ -152,18 +147,13 @@ public class WalletService {
         transaction.setBankAccount(bankAccount);
 
         Transaction savedTransaction = transactionRepository.save(transaction);
-
         return mapToResponse(savedTransaction);
     }
 
-    public Page<TransactionResponse> getTransactions(Integer userId, Pageable pageable) {
-        Wallet wallet = getWalletByUserId(userId);
-        Page<Transaction> transactions = transactionRepository
-                .findByWallet_WalletIdOrderByCreatedAtDesc(wallet.getWalletId(), pageable);
-
-        return transactions.map(this::mapToResponse);
-    }
-
+    /**
+     * Trừ tiền từ wallet (dùng cho phí đăng tin, thanh toán)
+     * Tạo Transaction record tự động
+     */
     @Transactional
     public Transaction chargeFee(Integer userId, BigDecimal amount, String description) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -177,24 +167,57 @@ public class WalletService {
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
-                    String.format("Insufficient balance. Required: %s, Available: %s",
-                            amount, wallet.getBalance())
+                String.format("Insufficient balance. Required: %s, Available: %s", amount, wallet.getBalance())
             );
         }
 
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
-
+        
         return transactionService.createTransaction(
-                wallet,
-                user,
-                null,
-                amount.negate(),
-                TransactionType.FEE,
-                description
+            wallet, user, null, amount.negate(), TransactionType.FEE, description
         );
     }
 
+    /**
+     * Chuyển tiền giữa 2 user
+     */
+    @Transactional
+    public void transferMoney(Integer fromUserId, Integer toUserId, BigDecimal amount, String description) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Transfer amount must be greater than 0");
+        }
+        
+        User fromUser = userRepository.findById(fromUserId)
+                .orElseThrow(() -> new RuntimeException("From user not found: " + fromUserId));
+        User toUser = userRepository.findById(toUserId)
+                .orElseThrow(() -> new RuntimeException("To user not found: " + toUserId));
+        
+        Wallet fromWallet = getOrCreateWallet(fromUser);
+        Wallet toWallet = getOrCreateWallet(toUser);
+        
+        if (fromWallet.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient balance for transfer");
+        }
+        
+        fromWallet.setBalance(fromWallet.getBalance().subtract(amount));
+        toWallet.setBalance(toWallet.getBalance().add(amount));
+        
+        walletRepository.save(fromWallet);
+        walletRepository.save(toWallet);
+        
+        transactionService.createTransaction(fromWallet, fromUser, null, amount.negate(), TransactionType.TRANSFER, description + " (sent)");
+        transactionService.createTransaction(toWallet, toUser, null, amount, TransactionType.TRANSFER, description + " (received)");
+    }
+
+    // =========================================================
+    // 3. CÁC HÀM LOCK / UNLOCK TIỀN CỌC
+    // =========================================================
+
+    /**
+     * Khóa tiền (chuyển từ balance → lockedBalance)
+     * Dùng khi buyer đặt cọc
+     */
     @Transactional
     public void lockBalance(Integer userId, BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -205,8 +228,7 @@ public class WalletService {
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
-                    String.format("Insufficient balance to lock. Required: %s, Available: %s",
-                            amount, wallet.getBalance())
+                String.format("Insufficient balance to lock. Required: %s, Available: %s", amount, wallet.getBalance())
             );
         }
 
@@ -215,6 +237,10 @@ public class WalletService {
         walletRepository.save(wallet);
     }
 
+    /**
+     * Mở khóa tiền (chuyển từ lockedBalance → balance)
+     * Dùng khi hủy đặt cọc
+     */
     @Transactional
     public void unlockBalance(Integer userId, BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -225,8 +251,7 @@ public class WalletService {
 
         if (wallet.getLockedBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
-                    String.format("Insufficient locked balance. Required: %s, Available: %s",
-                            amount, wallet.getLockedBalance())
+                String.format("Insufficient locked balance. Required: %s, Available: %s", amount, wallet.getLockedBalance())
             );
         }
 
@@ -235,6 +260,9 @@ public class WalletService {
         walletRepository.save(wallet);
     }
 
+    /**
+     * Mở khóa và trừ tiền (dùng khi hoàn tất đơn hàng - trừ deposit đã lock)
+     */
     @Transactional
     public void unlockAndDeduct(Integer userId, BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -245,8 +273,7 @@ public class WalletService {
 
         if (wallet.getLockedBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
-                    String.format("Insufficient locked balance. Required: %s, Available: %s",
-                            amount, wallet.getLockedBalance())
+                String.format("Insufficient locked balance. Required: %s, Available: %s", amount, wallet.getLockedBalance())
             );
         }
 
@@ -254,39 +281,52 @@ public class WalletService {
         walletRepository.save(wallet);
     }
 
+    // =========================================================
+    // 4. XỬ LÝ THANH TOÁN VN-PAY & MAPPING
+    // =========================================================
+
     @Transactional
-    public void transferMoney(Integer fromUserId, Integer toUserId, BigDecimal amount, String description) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Transfer amount must be greater than 0");
+    public void processVnPayCallback(Integer transactionId, BigDecimal vnpAmount, String vnpResponseCode) {
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Giao dịch không tồn tại"));
+
+        if (transaction.getStatus() != TransactionStatus.PENDING) {
+            throw new RuntimeException("Giao dịch này đã được xử lý trước đó!");
         }
 
-        User fromUser = userRepository.findById(fromUserId)
-                .orElseThrow(() -> new RuntimeException("From user not found: " + fromUserId));
-        User toUser = userRepository.findById(toUserId)
-                .orElseThrow(() -> new RuntimeException("To user not found: " + toUserId));
-
-        Wallet fromWallet = getOrCreateWallet(fromUser);
-        Wallet toWallet = getOrCreateWallet(toUser);
-
-        if (fromWallet.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient balance for transfer");
+        BigDecimal expectedAmount = transaction.getAmount().multiply(new BigDecimal(100));
+        if (expectedAmount.compareTo(vnpAmount) != 0) {
+            transaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(transaction);
+            throw new RuntimeException("Bảo mật: Số tiền không khớp!");
         }
 
-        fromWallet.setBalance(fromWallet.getBalance().subtract(amount));
-        toWallet.setBalance(toWallet.getBalance().add(amount));
+        if ("00".equals(vnpResponseCode)) {
+            Wallet wallet = transaction.getWallet();
+            wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
+            walletRepository.save(wallet);
+            transaction.setStatus(TransactionStatus.COMPLETED);
+        } else {
+            transaction.setStatus(TransactionStatus.FAILED);
+        }
+        transactionRepository.save(transaction);
+    }
 
-        walletRepository.save(fromWallet);
-        walletRepository.save(toWallet);
+    public Page<TransactionResponse> getTransactions(Integer userId, Pageable pageable) {
+        Wallet wallet = getWalletByUserId(userId);
+        Page<Transaction> transactions = transactionRepository.findByWallet_WalletIdOrderByCreatedAtDesc(wallet.getWalletId(), pageable);
+        return transactions.map(this::mapToResponse);
+    }
 
-        transactionService.createTransaction(
-                fromWallet, fromUser, null, amount.negate(),
-                TransactionType.TRANSFER, description + " (sent)"
-        );
-
-        transactionService.createTransaction(
-                toWallet, toUser, null, amount,
-                TransactionType.TRANSFER, description + " (received)"
-        );
+    private TransactionResponse mapToResponse(Transaction t) {
+        return TransactionResponse.builder()
+                .transactionId(t.getTransactionId())
+                .amount(t.getAmount())
+                .transactionType(t.getType() != null ? t.getType().name() : null)
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
+                .createdAt(t.getCreatedAt())
+                .bankAccount(t.getBankAccount())
+                .build();
     }
 
     private TransactionResponse mapToResponse(Transaction t) {
