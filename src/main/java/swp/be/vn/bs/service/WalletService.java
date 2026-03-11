@@ -328,15 +328,4 @@ public class WalletService {
                 .bankAccount(t.getBankAccount())
                 .build();
     }
-
-    private TransactionResponse mapToResponse(Transaction t) {
-        return TransactionResponse.builder()
-                .transactionId(t.getTransactionId())
-                .amount(t.getAmount())
-                .transactionType(t.getType() != null ? t.getType().name() : null)
-                .status(t.getStatus() != null ? t.getStatus().name() : null)
-                .createdAt(t.getCreatedAt())
-                .bankAccount(t.getBankAccount())
-                .build();
-    }
 }
