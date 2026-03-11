@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swp.be.vn.bs.dto.TransactionResponse;
+import swp.be.vn.bs.dto.response.TransactionResponse;
 import swp.be.vn.bs.entity.Transaction;
 import swp.be.vn.bs.entity.TransactionStatus;
 import swp.be.vn.bs.entity.TransactionType;

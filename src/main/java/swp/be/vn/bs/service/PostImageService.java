@@ -31,11 +31,18 @@ public class PostImageService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng với ID: " + postId));
 
+        // Get current images
+        List<PostImage> existingImages = postImageRepository.findByPost_PostIdOrderBySortOrderAsc(postId);
+        
+        // Validate max images limit (10 images per post)
+        if (existingImages.size() >= 10) {
+            throw new IllegalArgumentException("Mỗi bài đăng chỉ được upload tối đa 10 ảnh");
+        }
+
         // Upload to Cloudinary
         String imageUrl = cloudinaryService.uploadImage(file, "bicycles/post_" + postId);
 
-        // Get current max sort order
-        List<PostImage> existingImages = postImageRepository.findByPost_PostIdOrderBySortOrderAsc(postId);
+        // Get next sort order
         int nextSortOrder = existingImages.size() + 1;
 
         // If this is set as thumbnail, unset other thumbnails

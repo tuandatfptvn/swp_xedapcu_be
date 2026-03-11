@@ -24,7 +24,6 @@ public class ImageController {
     private final PostImageService postImageService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Upload ảnh cho bài đăng")
     public ResponseEntity<?> uploadImage(
             @PathVariable Integer postId,
@@ -81,7 +80,6 @@ public class ImageController {
     }
 
     @PutMapping("/{imageId}/thumbnail")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Đặt ảnh làm thumbnail")
     public ResponseEntity<?> setThumbnail(
             @PathVariable Integer postId,
@@ -106,7 +104,6 @@ public class ImageController {
     }
 
     @DeleteMapping("/{imageId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Xóa ảnh")
     public ResponseEntity<?> deleteImage(
             @PathVariable Integer postId,
@@ -130,7 +127,6 @@ public class ImageController {
     }
 
     @DeleteMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Xóa tất cả ảnh của bài đăng")
     public ResponseEntity<?> deleteAllImages(@PathVariable Integer postId) {
         postImageService.deleteAllImages(postId);

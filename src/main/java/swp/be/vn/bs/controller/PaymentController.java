@@ -4,12 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.dto.WalletRequest;
+import swp.be.vn.bs.dto.request.WalletRequest;
 import swp.be.vn.bs.entity.Transaction;
 import swp.be.vn.bs.service.PaymentService;
 import swp.be.vn.bs.service.WalletService;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 

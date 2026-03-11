@@ -5,8 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import swp.be.vn.bs.dto.WalletRequest;
-import swp.be.vn.bs.dto.TransactionResponse; 
+import swp.be.vn.bs.dto.request.WalletRequest;
+import swp.be.vn.bs.dto.response.TransactionResponse;
 import swp.be.vn.bs.service.WalletService;
 
 import java.math.BigDecimal;
