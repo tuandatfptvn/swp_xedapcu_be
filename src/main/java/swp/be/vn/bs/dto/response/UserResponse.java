@@ -17,4 +17,5 @@ public class UserResponse {
     private String provider;
     private String fullName;
     private String picture;
+    private Boolean isActive;
 }
