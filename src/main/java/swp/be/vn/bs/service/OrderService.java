@@ -65,11 +65,8 @@ public class OrderService {
             throw new RuntimeException("You cannot buy your own bicycle");
         }
         
-        // 4. Check post đã có order chưa (chỉ block nếu order đó đang ACTIVE)
-        boolean hasActiveOrder = orderRepository.findByPost_PostId(postId).stream()
-                .anyMatch(o -> o.getStatus() != OrderStatus.CANCELLED && o.getStatus() != OrderStatus.REFUNDED);
-        
-        if (hasActiveOrder) {
+        // 4. Check post đã có order chưa
+        if (orderRepository.findByPost_PostId(postId).isPresent()) {
             throw new RuntimeException("This post already has an active order");
         }
         
