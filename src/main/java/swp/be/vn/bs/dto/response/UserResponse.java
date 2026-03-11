@@ -11,9 +11,11 @@ import swp.be.vn.bs.entity.Role;
 @AllArgsConstructor
 @Builder
 public class UserResponse {
+    private Integer userId;
     private String email;
     private Role role;
     private String provider;
     private String fullName;
     private String picture;
+    private Boolean isActive;
 }

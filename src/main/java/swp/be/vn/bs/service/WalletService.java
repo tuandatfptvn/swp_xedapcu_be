@@ -62,6 +62,7 @@ public class WalletService {
                     Wallet newWallet = new Wallet();
                     newWallet.setUser(user);
                     newWallet.setBalance(BigDecimal.ZERO);
+                    newWallet.setLockedBalance(BigDecimal.ZERO);
                     return walletRepository.save(newWallet);
                 });
     }
@@ -158,18 +159,18 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Amount must be greater than 0");
         }
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        
+
         Wallet wallet = getOrCreateWallet(user);
-        
+
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
                 String.format("Insufficient balance. Required: %s, Available: %s", amount, wallet.getBalance())
             );
         }
-        
+
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
         
@@ -222,15 +223,15 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Lock amount must be greater than 0");
         }
-        
+
         Wallet wallet = getWalletByUserId(userId);
-        
+
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
                 String.format("Insufficient balance to lock. Required: %s, Available: %s", amount, wallet.getBalance())
             );
         }
-        
+
         wallet.setBalance(wallet.getBalance().subtract(amount));
         wallet.setLockedBalance(wallet.getLockedBalance().add(amount));
         walletRepository.save(wallet);
@@ -245,15 +246,15 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Unlock amount must be greater than 0");
         }
-        
+
         Wallet wallet = getWalletByUserId(userId);
-        
+
         if (wallet.getLockedBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
                 String.format("Insufficient locked balance. Required: %s, Available: %s", amount, wallet.getLockedBalance())
             );
         }
-        
+
         wallet.setLockedBalance(wallet.getLockedBalance().subtract(amount));
         wallet.setBalance(wallet.getBalance().add(amount));
         walletRepository.save(wallet);
@@ -267,15 +268,15 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Amount must be greater than 0");
         }
-        
+
         Wallet wallet = getWalletByUserId(userId);
-        
+
         if (wallet.getLockedBalance().compareTo(amount) < 0) {
             throw new RuntimeException(
                 String.format("Insufficient locked balance. Required: %s, Available: %s", amount, wallet.getLockedBalance())
             );
         }
-        
+
         wallet.setLockedBalance(wallet.getLockedBalance().subtract(amount));
         walletRepository.save(wallet);
     }
@@ -315,6 +316,17 @@ public class WalletService {
         Wallet wallet = getWalletByUserId(userId);
         Page<Transaction> transactions = transactionRepository.findByWallet_WalletIdOrderByCreatedAtDesc(wallet.getWalletId(), pageable);
         return transactions.map(this::mapToResponse);
+    }
+
+    private TransactionResponse mapToResponse(Transaction t) {
+        return TransactionResponse.builder()
+                .transactionId(t.getTransactionId())
+                .amount(t.getAmount())
+                .transactionType(t.getType() != null ? t.getType().name() : null)
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
+                .createdAt(t.getCreatedAt())
+                .bankAccount(t.getBankAccount())
+                .build();
     }
 
     private TransactionResponse mapToResponse(Transaction t) {
