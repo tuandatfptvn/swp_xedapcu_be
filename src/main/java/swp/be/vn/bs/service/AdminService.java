@@ -26,6 +26,7 @@ public class AdminService {
      */
     private UserResponse convertToUserResponse(User user) {
         return UserResponse.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .provider(user.getProvider())
