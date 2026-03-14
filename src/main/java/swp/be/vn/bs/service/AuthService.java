@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import swp.be.vn.bs.config.JwtTokenProvider;
 import swp.be.vn.bs.dto.response.AuthResponse;
 import swp.be.vn.bs.dto.request.LoginRequest;
@@ -29,6 +30,10 @@ public class AuthService {
     @Autowired
     private AuthenticationManager authenticationManager;
     
+    @Autowired
+    private WalletService walletService;
+    
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists!");
@@ -43,7 +48,10 @@ public class AuthService {
                 .provider("local")
                 .build();
         
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        
+        // Auto tạo wallet cho user mới
+        walletService.getOrCreateWallet(savedUser);
         
         String token = jwtTokenProvider.generateTokenFromEmailAndRole(
                 user.getEmail(), 

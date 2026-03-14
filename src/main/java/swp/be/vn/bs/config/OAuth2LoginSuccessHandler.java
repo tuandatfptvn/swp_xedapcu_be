@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import swp.be.vn.bs.entity.Role;
 import swp.be.vn.bs.entity.User;
 import swp.be.vn.bs.repository.UserRepository;
+import swp.be.vn.bs.service.WalletService;
 
 import java.io.IOException;
 
@@ -23,6 +24,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+    
+    @Autowired
+    private WalletService walletService;
     
     @Value("${oauth2.frontend.url}")
     private String frontendUrl;
@@ -52,13 +56,19 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                     .providerId(googleId)
                     .role(Role.USER)
                     .build();
-            userRepository.save(user);
+            user = userRepository.save(user);
+            
+            // Auto tạo wallet cho user mới
+            walletService.getOrCreateWallet(user);
         } else {
             user.setFullName(name);
             user.setPicture(picture);
             user.setProvider("google");
             user.setProviderId(googleId);
-            userRepository.save(user);
+            user = userRepository.save(user);
+            
+            // Đảm bảo user có wallet
+            walletService.getOrCreateWallet(user);
         }
         
         String token = jwtTokenProvider.generateTokenFromEmailAndRole(
