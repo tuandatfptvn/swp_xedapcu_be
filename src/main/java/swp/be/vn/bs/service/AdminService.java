@@ -9,7 +9,10 @@ import swp.be.vn.bs.dto.request.UpdateRoleRequest;
 import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.entity.User;
 import swp.be.vn.bs.entity.Role;
+import swp.be.vn.bs.entity.Post;
+import swp.be.vn.bs.entity.PostStatus;
 import swp.be.vn.bs.repository.UserRepository;
+import swp.be.vn.bs.repository.PostRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,9 @@ public class AdminService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private PostRepository postRepository;
     
     /**
      * Helper method: convert User → UserResponse
@@ -166,5 +172,92 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         
         userRepository.delete(user);
+    }
+    
+    // ===== POST MANAGEMENT =====
+    
+    /**
+     * Lấy danh sách tất cả posts (phân trang)
+     */
+    public Page<Post> getAllPosts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return postRepository.findAll(pageable);
+    }
+    
+    /**
+     * Tìm kiếm posts theo title
+     */
+    public Page<Post> searchPosts(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return postRepository.findByTitleContainingIgnoreCase(keyword, pageable);
+    }
+    
+    /**
+     * Lọc posts theo status
+     */
+    public Page<Post> getPostsByStatus(PostStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return postRepository.findByStatus(status, pageable);
+    }
+    
+    /**
+     * Lấy chi tiết post
+     */
+    public Post getPostById(Integer postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+    }
+    
+    /**
+     * Lấy thống kê posts
+     */
+    public Map<String, Object> getPostStats() {
+        List<Post> allPosts = postRepository.findAll();
+        
+        Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalPosts", allPosts.size());
+        stats.put("active", allPosts.stream().filter(p -> p.getStatus() == PostStatus.ACTIVE).count());
+        stats.put("pending", allPosts.stream().filter(p -> p.getStatus() == PostStatus.PENDING).count());
+        stats.put("reserved", allPosts.stream().filter(p -> p.getStatus() == PostStatus.RESERVED).count());
+        stats.put("sold", allPosts.stream().filter(p -> p.getStatus() == PostStatus.SOLD).count());
+        stats.put("cancelled", allPosts.stream().filter(p -> p.getStatus() == PostStatus.CANCELLED).count());
+        stats.put("expired", allPosts.stream().filter(p -> p.getStatus() == PostStatus.EXPIRED).count());
+        
+        return stats;
+    }
+    
+    /**
+     * Cập nhật status post
+     */
+    public Post updatePostStatus(Integer postId, PostStatus newStatus) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+        
+        post.setStatus(newStatus);
+        return postRepository.save(post);
+    }
+    
+    /**
+     * Khóa bài post (chuyển sang RESERVED)
+     */
+    public Post disablePost(Integer postId) {
+        return updatePostStatus(postId, PostStatus.RESERVED);
+    }
+    
+    /**
+     * Mở khóa bài post (chuyển sang ACTIVE)
+     */
+    public Post enablePost(Integer postId) {
+        return updatePostStatus(postId, PostStatus.ACTIVE);
+    }
+    
+    /**
+     * Xóa post
+     */
+    public void deletePost(Integer postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
+        
+        postRepository.delete(post);
     }
 }
