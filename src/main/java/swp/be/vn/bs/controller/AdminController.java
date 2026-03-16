@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import swp.be.vn.bs.dto.request.UpdateRoleRequest;
 import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.entity.Role;
+import swp.be.vn.bs.entity.Post;
+import swp.be.vn.bs.entity.PostStatus;
 import swp.be.vn.bs.service.AdminService;
 
 import java.util.HashMap;
@@ -209,6 +211,186 @@ public class AdminController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "✅ User deleted successfully!");
             response.put("email", email);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    // ===== POST MANAGEMENT =====
+    
+    /**
+     * GET /api/admin/posts
+     * Lấy danh sách posts (phân trang)
+     */
+    @GetMapping("/posts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<Post> posts = adminService.getAllPosts(page, size);
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/posts/search
+     * Tìm kiếm posts theo title
+     */
+    @GetMapping("/posts/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> searchPosts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<Post> results = adminService.searchPosts(keyword, page, size);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("keyword", keyword);
+            response.put("total", results.getTotalElements());
+            response.put("posts", results.getContent());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/posts/status/{status}
+     * Lọc posts theo status
+     */
+    @GetMapping("/posts/status/{status}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getPostsByStatus(
+            @PathVariable String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            PostStatus postStatus = PostStatus.valueOf(status.toUpperCase());
+            Page<Post> posts = adminService.getPostsByStatus(postStatus, page, size);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", status);
+            response.put("total", posts.getTotalElements());
+            response.put("posts", posts.getContent());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/posts/stats
+     * Lấy thống kê posts
+     */
+    @GetMapping("/posts/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getPostStats() {
+        try {
+            Map<String, Object> stats = adminService.getPostStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/posts/{postId}
+     * Lấy chi tiết post
+     */
+    @GetMapping("/posts/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getPostById(@PathVariable Integer postId) {
+        try {
+            Post post = adminService.getPostById(postId);
+            return ResponseEntity.ok(post);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * PUT /api/admin/posts/{postId}/status
+     * Cập nhật status post
+     */
+    @PutMapping("/posts/{postId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updatePostStatus(
+            @PathVariable Integer postId,
+            @RequestParam PostStatus status) {
+        try {
+            Post updatedPost = adminService.updatePostStatus(postId, status);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "✅ Post status updated successfully!");
+            response.put("post", updatedPost);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * PUT /api/admin/posts/{postId}/disable
+     * Khóa bài post (CANCELLED)
+     */
+    @PutMapping("/posts/{postId}/disable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> disablePost(@PathVariable Integer postId) {
+        try {
+            Post disabledPost = adminService.disablePost(postId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "✅ Post disabled successfully!");
+            response.put("post", disabledPost);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * PUT /api/admin/posts/{postId}/enable
+     * Mở khóa bài post (ACTIVE)
+     */
+    @PutMapping("/posts/{postId}/enable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enablePost(@PathVariable Integer postId) {
+        try {
+            Post enabledPost = adminService.enablePost(postId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "✅ Post enabled successfully!");
+            response.put("post", enabledPost);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * DELETE /api/admin/posts/{postId}
+     * Xóa post
+     */
+    @DeleteMapping("/posts/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deletePost(@PathVariable Integer postId) {
+        try {
+            adminService.deletePost(postId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "✅ Post deleted successfully!");
+            response.put("postId", postId);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
