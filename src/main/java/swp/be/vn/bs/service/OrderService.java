@@ -13,6 +13,7 @@ import swp.be.vn.bs.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -132,25 +133,125 @@ public class OrderService {
             throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
         }
         
-        // 3. Unlock tiền (chuyển từ lockedBalance → balance)
-        walletService.unlockBalance(order.getBuyer().getUserId(), order.getDepositAmount());
-        
-        // 4. Unlock post
+        // Theo PHASE 2.2: Buyer cancel -> mất cọc, chuyển cọc cho seller
+        User buyer = order.getBuyer();
+        User seller = order.getPost().getSeller();
+        BigDecimal depositAmount = order.getDepositAmount();
+
+        // 3. Mở khóa và trừ tiền cọc của buyer (lockedBalance -> 0)
+        walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
+
+        // 4. Chuyển cọc cho seller
+        walletService.deposit(seller.getUserId(), depositAmount);
+
+        // 5. Unlock post
         postService.unlockPost(order.getPost().getPostId());
-        
-        // 5. Update order status
+
+        // 6. Update order status
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        
-        // 6. Tạo Transaction record (type=REFUND, số dương vì hoàn tiền)
+
+        // 7. Transaction records
         transactionService.createTransaction(
-            walletService.getOrCreateWallet(order.getBuyer()),
-            order.getBuyer(),
+            walletService.getOrCreateWallet(buyer),
+            buyer,
             order,
-            order.getDepositAmount(),
-            TransactionType.REFUND,
-            "Refund deposit for cancelled order #" + orderId
+            depositAmount.negate(),
+            TransactionType.PENALTY,
+            "Buyer cancelled order #" + orderId + " - deposit forfeited"
         );
+        transactionService.createTransaction(
+            walletService.getOrCreateWallet(seller),
+            seller,
+            order,
+            depositAmount,
+            TransactionType.TRANSFER,
+            "Received forfeited deposit for order #" + orderId
+        );
+    }
+
+    /**
+     * Seller hủy đơn: refund cọc cho buyer + create violation cho seller
+     */
+    @Transactional
+    public void cancelOrderBySeller(Integer orderId, String sellerEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        if (!order.getPost().getSeller().getEmail().equals(sellerEmail)) {
+            throw new RuntimeException("You can only cancel orders for your own posts");
+        }
+
+        if (order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY) {
+            throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
+        }
+
+        User buyer = order.getBuyer();
+        User seller = order.getPost().getSeller();
+        BigDecimal depositAmount = order.getDepositAmount();
+
+        // Refund cọc cho buyer (lockedBalance -> balance)
+        walletService.unlockBalance(buyer.getUserId(), depositAmount);
+
+        // Violation cho seller
+        violationService.recordViolation(seller, order, "SELLER_CANCEL", BigDecimal.ZERO);
+
+        // Update status + unlock post
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        postService.unlockPost(order.getPost().getPostId());
+
+        // Transaction record refund
+        transactionService.createTransaction(
+            walletService.getOrCreateWallet(buyer),
+            buyer,
+            order,
+            depositAmount,
+            TransactionType.REFUND,
+            "Refund deposit for seller-cancelled order #" + orderId
+        );
+    }
+
+    /**
+     * Auto-cancel orders quá 10 phút chưa confirm (scheduler)
+     * Rule: system auto-cancel -> refund cọc cho buyer, unlock post, cancel order
+     */
+    @Transactional
+    public int autoCancelExpiredDeposits(int minutes) {
+        LocalDateTime cutoff = LocalDateTime.now().minus(minutes, ChronoUnit.MINUTES);
+        List<Order> expired = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.DEPOSIT_PAID, cutoff);
+
+        int cancelled = 0;
+        for (Order order : expired) {
+            // Nếu post còn đang reserved và đã hết hạn thì mới auto-cancel
+            Post post = order.getPost();
+            if (post.getReservedUntil() == null || post.getReservedUntil().isAfter(LocalDateTime.now())) {
+                continue;
+            }
+
+            // Refund buyer deposit
+            User buyer = order.getBuyer();
+            BigDecimal depositAmount = order.getDepositAmount();
+            walletService.unlockBalance(buyer.getUserId(), depositAmount);
+
+            // Unlock post & cancel order
+            postService.unlockPost(post.getPostId());
+            order.setStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+
+            transactionService.createTransaction(
+                walletService.getOrCreateWallet(buyer),
+                buyer,
+                order,
+                depositAmount,
+                TransactionType.REFUND,
+                "Auto-cancel expired deposit for order #" + order.getOrderId()
+            );
+
+            cancelled++;
+        }
+
+        return cancelled;
     }
     
     /**
@@ -294,6 +395,8 @@ public class OrderService {
                 .build();
 
     }
+
+
     //1. Seller bao cao : Buyer khong den
     @Transactional
     public void reportBuyerNoShow(Integer orderId, String sellerEmail){
