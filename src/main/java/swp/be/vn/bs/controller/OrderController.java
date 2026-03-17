@@ -43,7 +43,7 @@ public class OrderController {
     
     /**
      * DELETE /api/orders/{orderId}/cancel
-     * Hủy đặt cọc - hoàn tiền
+     * Buyer hủy đặt cọc - mất cọc (transfer cho seller)
      */
     @DeleteMapping("/{orderId}/cancel")
     public ResponseEntity<?> cancelDeposit(
@@ -52,10 +52,28 @@ public class OrderController {
         try {
             String buyerEmail = authentication.getName();
             orderService.cancelDeposit(orderId, buyerEmail);
-            return ResponseEntity.ok("Deposit cancelled and refunded successfully");
+            return ResponseEntity.ok("Order cancelled. Deposit forfeited and transferred to seller.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error cancelling deposit: " + e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE /api/orders/{orderId}/seller-cancel
+     * Seller hủy đơn - hoàn cọc cho buyer + ghi nhận violation cho seller
+     */
+    @DeleteMapping("/{orderId}/seller-cancel")
+    public ResponseEntity<?> cancelBySeller(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String sellerEmail = authentication.getName();
+            orderService.cancelOrderBySeller(orderId, sellerEmail);
+            return ResponseEntity.ok("Order cancelled by seller. Deposit refunded and violation recorded.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error cancelling order by seller: " + e.getMessage());
         }
     }
     

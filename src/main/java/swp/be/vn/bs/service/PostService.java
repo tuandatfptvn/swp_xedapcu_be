@@ -71,7 +71,7 @@ public class PostService {
         // Tính post fee (5% giá xe)
         double feeRate = seller.getViolationCount() > 0 ? 0.10 : 0.05;
         BigDecimal postFee = request.getPrice()
-                .multiply(new BigDecimal("0.05"))
+                .multiply(BigDecimal.valueOf(feeRate))
                 .setScale(2, RoundingMode.HALF_UP);
         
         // Check balance và charge fee
