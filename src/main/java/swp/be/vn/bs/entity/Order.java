@@ -47,6 +47,16 @@ public class Order {
     @Column(name = "delivery_address", length = 500)
     private String deliveryAddress;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_inspector_id")
+    private User assignedInspector;
+    
+    @Column(name = "seller_confirmed_at")
+    private LocalDateTime sellerConfirmedAt;
+    
+    @Column(name = "admin_reviewed_at")
+    private LocalDateTime adminReviewedAt;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

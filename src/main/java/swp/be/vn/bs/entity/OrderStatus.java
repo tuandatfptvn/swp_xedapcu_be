@@ -3,6 +3,9 @@ package swp.be.vn.bs.entity;
 public enum OrderStatus {
     PENDING,
     DEPOSIT_PAID,
+    PENDING_SELLER_CONFIRMATION,
+    PENDING_ADMIN_REVIEW,
+    ASSIGNED_TO_INSPECTOR,
     IN_DELIVERY,
     COMPLETED,
     CANCELLED,

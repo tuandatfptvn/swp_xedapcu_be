@@ -41,6 +41,16 @@ public class DeliverySession {
     private DeliveryStatus status;
     
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inspector_id")
+    private User inspector;
+    
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+    
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verified_by")
     private User verifiedBy;
     

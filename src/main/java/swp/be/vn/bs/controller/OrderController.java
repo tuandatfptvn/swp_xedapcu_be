@@ -202,4 +202,59 @@ public class OrderController {
                     .body("Error reporting seller no-show: " + e.getMessage());
         }
     }
+
+    /**
+     * PUT /api/orders/{orderId}/seller-confirm-delivery
+     * Seller confirm delivery address and proceed
+     */
+    @PutMapping("/{orderId}/seller-confirm-delivery")
+    public ResponseEntity<?> sellerConfirmDelivery(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String sellerEmail = authentication.getName();
+            OrderResponse response = orderService.sellerConfirmDelivery(orderId, sellerEmail);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error confirming delivery: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/orders/{orderId}/admin-assign-inspector
+     * Admin assign inspector to delivery
+     */
+    @PostMapping("/{orderId}/admin-assign-inspector/{inspectorId}")
+    public ResponseEntity<?> adminAssignInspector(
+            @PathVariable Integer orderId,
+            @PathVariable Integer inspectorId,
+            Authentication authentication) {
+        try {
+            String adminEmail = authentication.getName();
+            OrderResponse response = orderService.adminAssignInspector(orderId, inspectorId, adminEmail);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error assigning inspector: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/orders/{orderId}/inspector-mark-delivered
+     * Inspector mark delivery as completed
+     */
+    @PostMapping("/{orderId}/inspector-mark-delivered")
+    public ResponseEntity<?> inspectorMarkDelivered(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String inspectorEmail = authentication.getName();
+            OrderResponse response = orderService.inspectorMarkDelivered(orderId, inspectorEmail);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error marking delivery as completed: " + e.getMessage());
+        }
+    }
 }

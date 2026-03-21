@@ -24,9 +24,12 @@ public class OrderResponse {
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
     private String deliveryAddress;
+    private LocalDateTime sellerConfirmedAt;
+    private LocalDateTime adminReviewedAt;
     
     private BuyerInfo buyer;
     private SellerInfo seller;
+    private InspectorInfo assignedInspector;
     private PostInfo post;
     
     @Data
@@ -44,6 +47,16 @@ public class OrderResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SellerInfo {
+        private Integer userId;
+        private String email;
+        private String fullName;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class InspectorInfo {
         private Integer userId;
         private String email;
         private String fullName;

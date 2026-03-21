@@ -368,6 +368,15 @@ public class OrderService {
                 .fullName(post.getSeller().getFullName())
                 .build();
         
+        OrderResponse.InspectorInfo inspectorInfo = null;
+        if (order.getAssignedInspector() != null) {
+            inspectorInfo = OrderResponse.InspectorInfo.builder()
+                    .userId(order.getAssignedInspector().getUserId())
+                    .email(order.getAssignedInspector().getEmail())
+                    .fullName(order.getAssignedInspector().getFullName())
+                    .build();
+        }
+        
         OrderResponse.PostInfo postInfo = OrderResponse.PostInfo.builder()
                 .postId(post.getPostId())
                 .title(post.getTitle())
@@ -391,8 +400,11 @@ public class OrderService {
                 .createdAt(order.getCreatedAt())
                 .expiresAt(expiresAt)
                 .deliveryAddress(order.getDeliveryAddress())
+                .sellerConfirmedAt(order.getSellerConfirmedAt())
+                .adminReviewedAt(order.getAdminReviewedAt())
                 .buyer(buyerInfo)
                 .seller(sellerInfo)
+                .assignedInspector(inspectorInfo)
                 .post(postInfo)
                 .build();
 
@@ -457,5 +469,115 @@ public class OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
         postService.unlockPost(order.getPost().getPostId());
+    }
+
+    /**
+     * Seller confirm delivery address
+     */
+    @Transactional
+    public OrderResponse sellerConfirmDelivery(Integer orderId, String sellerEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        // Verify seller ownership
+        if (!order.getPost().getSeller().getEmail().equals(sellerEmail)) {
+            throw new RuntimeException("Only seller can confirm delivery");
+        }
+
+        // Check order status
+        if (order.getStatus() != OrderStatus.DEPOSIT_PAID) {
+            throw new RuntimeException("Order must be in DEPOSIT_PAID status to confirm delivery");
+        }
+
+        // Update order status
+        order.setStatus(OrderStatus.PENDING_SELLER_CONFIRMATION);
+        order.setSellerConfirmedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // Update delivery session status
+        deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
+            delivery.setStatus(DeliveryStatus.PENDING_INSPECTOR_ASSIGNMENT);
+            deliverySessionRepository.save(delivery);
+        });
+
+        return mapToResponse(order);
+    }
+
+    /**
+     * Admin assign inspector to delivery
+     */
+    @Transactional
+    public OrderResponse adminAssignInspector(Integer orderId, Integer inspectorId, String adminEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        // Verify admin exists (could add role check here)
+        userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found: " + adminEmail));
+
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new RuntimeException("Inspector not found with ID: " + inspectorId));
+
+        // Check if inspector has INSPECTOR role
+        if (!inspector.getRole().equals(Role.INSPECTOR)) {
+            throw new RuntimeException("User is not an inspector");
+        }
+
+        // Check order status
+        if (order.getStatus() != OrderStatus.PENDING_SELLER_CONFIRMATION &&
+            order.getStatus() != OrderStatus.PENDING_ADMIN_REVIEW) {
+            throw new RuntimeException("Order cannot be assigned in current status: " + order.getStatus());
+        }
+
+        // Update order
+        order.setStatus(OrderStatus.ASSIGNED_TO_INSPECTOR);
+        order.setAssignedInspector(inspector);
+        order.setAdminReviewedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // Update delivery session
+        deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
+            delivery.setInspector(inspector);
+            delivery.setStatus(DeliveryStatus.ASSIGNED_TO_INSPECTOR);
+            delivery.setAssignedAt(LocalDateTime.now());
+            deliverySessionRepository.save(delivery);
+        });
+
+        return mapToResponse(order);
+    }
+
+    /**
+     * Inspector mark delivery as completed
+     */
+    @Transactional
+    public OrderResponse inspectorMarkDelivered(Integer orderId, String inspectorEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        User inspector = userRepository.findByEmail(inspectorEmail)
+                .orElseThrow(() -> new RuntimeException("Inspector not found: " + inspectorEmail));
+
+        // Verify inspector ownership
+        if (!order.getAssignedInspector().getUserId().equals(inspector.getUserId())) {
+            throw new RuntimeException("Only assigned inspector can mark as delivered");
+        }
+
+        // Check order status
+        if (order.getStatus() != OrderStatus.ASSIGNED_TO_INSPECTOR) {
+            throw new RuntimeException("Order must be ASSIGNED_TO_INSPECTOR to mark as delivered");
+        }
+
+        // Update order status
+        order.setStatus(OrderStatus.IN_DELIVERY);
+        orderRepository.save(order);
+
+        // Update delivery session
+        deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
+            delivery.setStatus(DeliveryStatus.DELIVERED);
+            delivery.setDeliveredAt(LocalDateTime.now());
+            deliverySessionRepository.save(delivery);
+        });
+
+        return mapToResponse(order);
     }
 }
