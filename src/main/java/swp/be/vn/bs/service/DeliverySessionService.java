@@ -66,8 +66,9 @@ public class DeliverySessionService {
         
         DeliverySession saved = deliverySessionRepository.save(delivery);
         
-        // 7. Update order status
-        order.setStatus(OrderStatus.IN_DELIVERY);
+        // 7. Update order status - KHÔNG set IN_DELIVERY ngay! 
+        // Status vẫn là DEPOSIT_PAID, chờ seller confirm sau
+        // order.setStatus(OrderStatus.IN_DELIVERY);
         orderRepository.save(order);
         
         return mapToResponse(saved);

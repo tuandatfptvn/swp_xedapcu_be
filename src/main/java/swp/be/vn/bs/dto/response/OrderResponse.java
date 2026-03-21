@@ -31,6 +31,7 @@ public class OrderResponse {
     private SellerInfo seller;
     private InspectorInfo assignedInspector;
     private PostInfo post;
+    private DeliverySessionInfo deliverySession;
     
     @Data
     @Builder
@@ -72,4 +73,20 @@ public class OrderResponse {
         private BigDecimal price;
         private BigDecimal postFee;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DeliverySessionInfo {
+        private Integer sessionId;
+        private LocalDateTime deliveryDate;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private String location;
+        private String deliveryStatus;
+        private LocalDateTime assignedAt;
+        private LocalDateTime deliveredAt;
+    }
 }
+

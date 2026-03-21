@@ -241,6 +241,24 @@ public class OrderController {
     }
 
     /**
+     * POST /api/orders/{orderId}/inspector-start-delivery
+     * Inspector start delivery (transition to IN_DELIVERY status)
+     */
+    @PostMapping("/{orderId}/inspector-start-delivery")
+    public ResponseEntity<?> inspectorStartDelivery(
+            @PathVariable Integer orderId,
+            Authentication authentication) {
+        try {
+            String inspectorEmail = authentication.getName();
+            OrderResponse response = orderService.inspectorStartDelivery(orderId, inspectorEmail);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error starting delivery: " + e.getMessage());
+        }
+    }
+
+    /**
      * POST /api/orders/{orderId}/inspector-mark-delivered
      * Inspector mark delivery as completed
      */
@@ -257,4 +275,21 @@ public class OrderController {
                     .body("Error marking delivery as completed: " + e.getMessage());
         }
     }
+
+    /**
+     * GET /api/orders/my-delivery-tasks
+     * Inspector lấy danh sách delivery tasks được assign cho chính mình
+     */
+    @GetMapping("/my-delivery-tasks")
+    public ResponseEntity<?> getMyDeliveryTasks(Authentication authentication) {
+        try {
+            String inspectorEmail = authentication.getName();
+            List<OrderResponse> tasks = orderService.getMyDeliveryTasks(inspectorEmail);
+            return ResponseEntity.ok(tasks);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching delivery tasks: " + e.getMessage());
+        }
+    }
 }
+

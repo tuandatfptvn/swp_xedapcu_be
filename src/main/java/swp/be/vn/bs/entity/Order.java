@@ -51,6 +51,9 @@ public class Order {
     @JoinColumn(name = "assigned_inspector_id")
     private User assignedInspector;
     
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "order")
+    private DeliverySession deliverySession;
+    
     @Column(name = "seller_confirmed_at")
     private LocalDateTime sellerConfirmedAt;
     

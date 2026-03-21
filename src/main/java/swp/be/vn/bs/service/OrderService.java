@@ -353,7 +353,7 @@ public class OrderService {
     /**
      * Map Order entity to OrderResponse DTO
      */
-    private OrderResponse mapToResponse(Order order) {
+    public OrderResponse mapToResponse(Order order) {
         Post post = order.getPost();
         
         OrderResponse.BuyerInfo buyerInfo = OrderResponse.BuyerInfo.builder()
@@ -384,6 +384,25 @@ public class OrderService {
                 .postFee(post.getPostFee())
                 .build();
         
+        // Build DeliverySessionInfo if exists
+        OrderResponse.DeliverySessionInfo deliverySessionInfo = null;
+        if (order.getDeliverySession() != null) {
+            DeliverySession session = order.getDeliverySession();
+            deliverySessionInfo = OrderResponse.DeliverySessionInfo.builder()
+                    .sessionId(session.getSessionId())
+                    .deliveryDate(session.getDeliveryDate() != null ? 
+                            session.getDeliveryDate().atTime(session.getStartTime()) : null)
+                    .startTime(session.getStartTime() != null ?
+                            session.getDeliveryDate().atTime(session.getStartTime()) : null)
+                    .endTime(session.getEndTime() != null ?
+                            session.getDeliveryDate().atTime(session.getEndTime()) : null)
+                    .location(session.getLocation())
+                    .deliveryStatus(session.getStatus() != null ? session.getStatus().toString() : null)
+                    .assignedAt(session.getAssignedAt())
+                    .deliveredAt(session.getDeliveredAt())
+                    .build();
+        }
+        
         LocalDateTime expiresAt = null;
         if (post.getReservedUntil() != null) {
             expiresAt = post.getReservedUntil();
@@ -406,6 +425,7 @@ public class OrderService {
                 .seller(sellerInfo)
                 .assignedInspector(inspectorInfo)
                 .post(postInfo)
+                .deliverySession(deliverySessionInfo)
                 .build();
 
     }
@@ -547,6 +567,40 @@ public class OrderService {
     }
 
     /**
+     * Inspector start delivery (mark as IN_DELIVERY)
+     */
+    @Transactional
+    public OrderResponse inspectorStartDelivery(Integer orderId, String inspectorEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        User inspector = userRepository.findByEmail(inspectorEmail)
+                .orElseThrow(() -> new RuntimeException("Inspector not found: " + inspectorEmail));
+
+        // Verify inspector ownership
+        if (!order.getAssignedInspector().getUserId().equals(inspector.getUserId())) {
+            throw new RuntimeException("Only assigned inspector can start delivery");
+        }
+
+        // Check order status
+        if (order.getStatus() != OrderStatus.ASSIGNED_TO_INSPECTOR) {
+            throw new RuntimeException("Order must be ASSIGNED_TO_INSPECTOR to start delivery");
+        }
+
+        // Update order status to IN_DELIVERY (lúc này inspector bắt đầu giao)
+        order.setStatus(OrderStatus.IN_DELIVERY);
+        orderRepository.save(order);
+
+        // Update delivery session status
+        deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
+            delivery.setStatus(DeliveryStatus.ASSIGNED_TO_INSPECTOR); // Vẫn là ASSIGNED, chưa DELIVERED
+            deliverySessionRepository.save(delivery);
+        });
+
+        return mapToResponse(order);
+    }
+
+    /**
      * Inspector mark delivery as completed
      */
     @Transactional
@@ -562,16 +616,16 @@ public class OrderService {
             throw new RuntimeException("Only assigned inspector can mark as delivered");
         }
 
-        // Check order status
-        if (order.getStatus() != OrderStatus.ASSIGNED_TO_INSPECTOR) {
-            throw new RuntimeException("Order must be ASSIGNED_TO_INSPECTOR to mark as delivered");
+        // Check order status - phải đang IN_DELIVERY
+        if (order.getStatus() != OrderStatus.IN_DELIVERY) {
+            throw new RuntimeException("Order must be IN_DELIVERY to mark as delivered");
         }
 
-        // Update order status
-        order.setStatus(OrderStatus.IN_DELIVERY);
+        // Update order status to COMPLETED
+        order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
-        // Update delivery session
+        // Update delivery session status to DELIVERED
         deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
             delivery.setStatus(DeliveryStatus.DELIVERED);
             delivery.setDeliveredAt(LocalDateTime.now());
@@ -580,4 +634,29 @@ public class OrderService {
 
         return mapToResponse(order);
     }
+
+    /**
+     * Inspector lấy danh sách delivery tasks được assign cho chính mình
+     */
+    public List<OrderResponse> getMyDeliveryTasks(String inspectorEmail) {
+        User inspector = userRepository.findByEmail(inspectorEmail)
+                .orElseThrow(() -> new RuntimeException("Inspector not found: " + inspectorEmail));
+
+        // Check inspector role
+        if (!inspector.getRole().equals(Role.INSPECTOR)) {
+            throw new RuntimeException("User is not an inspector");
+        }
+
+        // Get all orders assigned to this inspector (ASSIGNED_TO_INSPECTOR or IN_DELIVERY)
+        List<Order> orders = orderRepository.findAll().stream()
+                .filter(o -> o.getAssignedInspector() != null)
+                .filter(o -> o.getAssignedInspector().getUserId().equals(inspector.getUserId()))
+                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR || o.getStatus() == OrderStatus.IN_DELIVERY)
+                .collect(Collectors.toList());
+
+        return orders.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 }
+
