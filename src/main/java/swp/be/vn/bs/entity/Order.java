@@ -44,6 +44,9 @@ public class Order {
     @Column(name = "status", length = 50)
     private OrderStatus status;
     
+    @Column(name = "delivery_address", length = 500)
+    private String deliveryAddress;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

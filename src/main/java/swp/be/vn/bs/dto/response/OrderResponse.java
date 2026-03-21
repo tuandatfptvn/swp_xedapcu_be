@@ -23,6 +23,7 @@ public class OrderResponse {
     private OrderStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
+    private String deliveryAddress;
     
     private BuyerInfo buyer;
     private SellerInfo seller;

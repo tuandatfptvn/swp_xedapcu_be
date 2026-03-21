@@ -48,7 +48,7 @@ public class OrderService {
      * Tạo đơn hàng và đặt cọc 20%
      */
     @Transactional
-    public OrderResponse createDeposit(Integer postId, String buyerEmail) {
+    public OrderResponse createDeposit(Integer postId, String buyerEmail, String deliveryAddress) {
         // 1. Validate buyer
         User buyer = userRepository.findByEmail(buyerEmail)
                 .orElseThrow(() -> new RuntimeException("Buyer not found: " + buyerEmail));
@@ -99,6 +99,7 @@ public class OrderService {
         order.setTotalAmount(post.getPrice());
         order.setRemainingAmount(remainingAmount);
         order.setStatus(OrderStatus.DEPOSIT_PAID);
+        order.setDeliveryAddress(deliveryAddress);
         
         Order savedOrder = orderRepository.save(order);
         
@@ -389,6 +390,7 @@ public class OrderService {
                 .status(order.getStatus())
                 .createdAt(order.getCreatedAt())
                 .expiresAt(expiresAt)
+                .deliveryAddress(order.getDeliveryAddress())
                 .buyer(buyerInfo)
                 .seller(sellerInfo)
                 .post(postInfo)

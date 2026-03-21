@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import swp.be.vn.bs.dto.request.DepositRequest;
 import swp.be.vn.bs.dto.request.DeliveryScheduleRequest;
 import swp.be.vn.bs.dto.response.DeliverySessionResponse;
 import swp.be.vn.bs.dto.response.OrderResponse;
@@ -25,15 +26,18 @@ public class OrderController {
     
     /**
      * POST /api/orders/deposit
-     * Đặt cọc 20% cho một post
+     * Đặt cọc 20% cho một post với địa chỉ giao hàng
      */
     @PostMapping("/deposit")
     public ResponseEntity<?> createDeposit(
-            @RequestParam Integer postId,
+            @RequestBody DepositRequest request,
             Authentication authentication) {
         try {
             String buyerEmail = authentication.getName();
-            OrderResponse response = orderService.createDeposit(postId, buyerEmail);
+            OrderResponse response = orderService.createDeposit(
+                    request.getPostId(), 
+                    buyerEmail, 
+                    request.getDeliveryAddress());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -123,11 +127,7 @@ public class OrderController {
                     .body("Error fetching order: " + e.getMessage());
         }
     }
-    
-    /**
-     * PUT /api/orders/{orderId}/schedule-delivery
-     * Lên lịch giao hàng
-     */
+
     @PutMapping("/{orderId}/schedule-delivery")
     public ResponseEntity<?> scheduleDelivery(
             @PathVariable Integer orderId,
