@@ -4,16 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import swp.be.vn.bs.entity.Role;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AuthResponse {
-    private Integer userId;
-    private String token;
-    private String email;
-    private Role role;
+public class PostImageResponse {
+    private Integer imageId;
+    private String imageUrl;
+    private Integer sortOrder;
+    private Boolean isThumbnail;
 }
-

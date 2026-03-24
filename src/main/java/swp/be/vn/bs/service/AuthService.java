@@ -59,6 +59,7 @@ public class AuthService {
         );
         
         return AuthResponse.builder()
+                .userId(savedUser.getUserId())
                 .token(token)
                 .email(user.getEmail())
                 .role(user.getRole())
@@ -81,6 +82,7 @@ public class AuthService {
             String token = jwtTokenProvider.generateToken(authentication);
             
             return AuthResponse.builder()
+                    .userId(user.getUserId())
                     .token(token)
                     .email(user.getEmail())
                     .role(user.getRole())

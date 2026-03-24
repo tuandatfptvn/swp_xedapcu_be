@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import swp.be.vn.bs.dto.response.PostImageResponse;
 import swp.be.vn.bs.entity.PostImage;
 import swp.be.vn.bs.service.PostImageService;
 
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/posts/{postId}/images")
@@ -32,11 +34,12 @@ public class ImageController {
     ) {
         try {
             PostImage image = postImageService.uploadImage(postId, file, isThumbnail);
+            PostImageResponse imageResponse = mapToResponse(image);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Upload ảnh thành công");
-            response.put("data", image);
+            response.put("data", imageResponse);
             
             return ResponseEntity.ok(response);
             
@@ -58,11 +61,14 @@ public class ImageController {
     @Operation(summary = "Lấy danh sách ảnh của bài đăng")
     public ResponseEntity<?> getPostImages(@PathVariable Integer postId) {
         List<PostImage> images = postImageService.getPostImages(postId);
+        List<PostImageResponse> imageResponses = images.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", images);
-        response.put("total", images.size());
+        response.put("data", imageResponses);
+        response.put("total", imageResponses.size());
         
         return ResponseEntity.ok(response);
     }
@@ -71,10 +77,11 @@ public class ImageController {
     @Operation(summary = "Lấy ảnh thumbnail của bài đăng")
     public ResponseEntity<?> getThumbnail(@PathVariable Integer postId) {
         PostImage thumbnail = postImageService.getThumbnail(postId);
+        PostImageResponse imageResponse = mapToResponse(thumbnail);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", thumbnail);
+        response.put("data", imageResponse);
         
         return ResponseEntity.ok(response);
     }
@@ -87,11 +94,12 @@ public class ImageController {
     ) {
         try {
             PostImage image = postImageService.setThumbnail(postId, imageId);
+            PostImageResponse imageResponse = mapToResponse(image);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Đặt thumbnail thành công");
-            response.put("data", image);
+            response.put("data", imageResponse);
             
             return ResponseEntity.ok(response);
             
@@ -137,4 +145,14 @@ public class ImageController {
         
         return ResponseEntity.ok(response);
     }
+
+    private PostImageResponse mapToResponse(PostImage image) {
+        return PostImageResponse.builder()
+                .imageId(image.getImageId())
+                .imageUrl(image.getImageUrl())
+                .sortOrder(image.getSortOrder())
+                .isThumbnail(image.getIsThumbnail())
+                .build();
+    }
 }
+
