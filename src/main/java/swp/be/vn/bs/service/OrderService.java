@@ -647,28 +647,19 @@ public class OrderService {
             throw new RuntimeException("Order must be IN_DELIVERY to mark as delivered");
         }
 
-        // Update order status to COMPLETED
-        order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
-        System.out.println("✅ Order #" + orderId + " status updated to COMPLETED by inspector");
-
-        // Update post status to SOLD (after inspector marks as delivered)
-        Post post = order.getPost();
-        post.setStatus(PostStatus.SOLD);
-        post.setReservedUntil(null);  // Clear reservation timestamp
-        post.setReservedBy(null);     // Clear who reserved it
-        postRepository.save(post);
-        System.out.println("✅ Post #" + post.getPostId() + " status updated to SOLD");
-
-        // Update delivery session status to DELIVERED
+        // Update delivery session status to DELIVERED (inspector confirms giao hàng xong)
+        // ⚠️ IMPORTANT: Không set order = COMPLETED ở đây!
+        // Buyer sẽ gọi /complete để finalize order
         deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
             delivery.setStatus(DeliveryStatus.DELIVERED);
             delivery.setDeliveredAt(LocalDateTime.now());
             deliverySessionRepository.save(delivery);
-            System.out.println("✅ Delivery session status updated to DELIVERED");
+            System.out.println("✅ Delivery session marked as DELIVERED by inspector");
         });
 
-        System.out.println("✅ Inspector delivery mark completed successfully");
+        System.out.println("✅ Inspector #" + orderId + " marked delivery complete (waiting for buyer to confirm)");
+        System.out.println("⏳ Order still IN_DELIVERY - buyer must call /complete to finalize");
+
         return mapToResponse(order);
     }
 
