@@ -144,22 +144,9 @@ public class OrderService {
 
         // 4. Chuyển cọc cho seller
         walletService.deposit(seller.getUserId(), depositAmount);
+        // Note: walletService.deposit() tự động tạo Transaction cho seller
 
-        // 5. Unlock post
-        postService.unlockPost(order.getPost().getPostId());
-
-        // 6. Update order status
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
-        System.out.println("✅ Order #" + orderId + " cancelled by buyer");
-        
-        // 7. Update post status to CANCELLED (since buyer cancelled)
-        Post post = order.getPost();
-        post.setStatus(PostStatus.CANCELLED);
-        postRepository.save(post);
-        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
-
-        // 8. Transaction records
+        // 5. Tạo Transaction record cho buyer (PENALTY)
         transactionService.createTransaction(
             walletService.getOrCreateWallet(buyer),
             buyer,
@@ -168,14 +155,20 @@ public class OrderService {
             TransactionType.PENALTY,
             "Buyer cancelled order #" + orderId + " - deposit forfeited"
         );
-        transactionService.createTransaction(
-            walletService.getOrCreateWallet(seller),
-            seller,
-            order,
-            depositAmount,
-            TransactionType.TRANSFER,
-            "Received forfeited deposit for order #" + orderId
-        );
+
+        // 6. Unlock post
+        postService.unlockPost(order.getPost().getPostId());
+
+        // 7. Update order status
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        System.out.println("✅ Order #" + orderId + " cancelled by buyer");
+        
+        // 8. Update post status to CANCELLED (since buyer cancelled)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.CANCELLED);
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
     }
 
     /**
@@ -312,17 +305,6 @@ public class OrderService {
         // 6. Seller nhận = totalPrice - postFee
         BigDecimal sellerReceives = totalPrice.subtract(postFee);
         walletService.deposit(seller.getUserId(), sellerReceives);
-        
-        // 7. Tạo Transaction cho seller (nhận tiền)
-        transactionService.createTransaction(
-            walletService.getOrCreateWallet(seller),
-            seller,
-            order,
-            sellerReceives,
-            TransactionType.PAYMENT,
-            String.format("Received payment for order #%d (Total: %s - Fee: %s = %s)", 
-                orderId, totalPrice, postFee, sellerReceives)
-        );
         
         // 8. Update order status
         order.setStatus(OrderStatus.COMPLETED);
