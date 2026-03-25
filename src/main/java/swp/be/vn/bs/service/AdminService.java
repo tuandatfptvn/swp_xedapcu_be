@@ -11,8 +11,13 @@ import swp.be.vn.bs.entity.User;
 import swp.be.vn.bs.entity.Role;
 import swp.be.vn.bs.entity.Post;
 import swp.be.vn.bs.entity.PostStatus;
+import swp.be.vn.bs.entity.Order;
+import swp.be.vn.bs.entity.OrderStatus;
+import swp.be.vn.bs.dto.response.OrderResponse;
 import swp.be.vn.bs.repository.UserRepository;
 import swp.be.vn.bs.repository.PostRepository;
+import swp.be.vn.bs.repository.OrderRepository;
+import swp.be.vn.bs.service.OrderService;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +31,12 @@ public class AdminService {
     
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private OrderService orderService;
     
     /**
      * Helper method: convert User → UserResponse
@@ -260,5 +271,52 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
         
         postRepository.delete(post);
+    }
+    
+    // ===== ORDER MANAGEMENT =====
+    
+    /**
+     * Lấy danh sách tất cả orders (phân trang)
+     */
+    public Page<OrderResponse> getAllOrders(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return orderRepository.findAll(pageable)
+                .map(orderService::mapToResponse);
+    }
+    
+    /**
+     * Tìm kiếm orders theo keyword (email hoặc orderId)
+     */
+    public Page<OrderResponse> searchOrders(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return orderRepository.searchOrders(keyword, pageable)
+                .map(orderService::mapToResponse);
+    }
+    
+    /**
+     * Lấy thống kê orders
+     */
+    public Map<String, Object> getOrderStats() {
+        List<Order> allOrders = orderRepository.findAll();
+        
+        Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalOrders", allOrders.size());
+        
+        // Count by status
+        stats.put("depositPaid", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.DEPOSIT_PAID).count());
+        stats.put("pendingSellerConfirmation", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.PENDING_SELLER_CONFIRMATION).count());
+        stats.put("assignedToInspector", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR).count());
+        stats.put("inDelivery", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.IN_DELIVERY).count());
+        stats.put("completed", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.COMPLETED).count());
+        stats.put("cancelled", allOrders.stream().filter(o -> o.getStatus() == OrderStatus.CANCELLED).count());
+        
+        // Sum revenue (total amount of completed orders)
+        java.math.BigDecimal totalRevenue = allOrders.stream()
+            .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
+            .map(Order::getTotalAmount)
+            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        stats.put("totalRevenue", totalRevenue);
+            
+        return stats;
     }
 }

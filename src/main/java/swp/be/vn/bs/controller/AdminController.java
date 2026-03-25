@@ -397,4 +397,62 @@ public class AdminController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    
+    // ===== ORDER MANAGEMENT =====
+    
+    /**
+     * GET /api/admin/orders
+     * Lấy danh sách orders (phân trang)
+     */
+    @GetMapping("/orders")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<swp.be.vn.bs.dto.response.OrderResponse> orders = adminService.getAllOrders(page, size);
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/orders/search
+     * Tìm kiếm orders theo orderId hoặc email
+     */
+    @GetMapping("/orders/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> searchOrders(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<swp.be.vn.bs.dto.response.OrderResponse> results = adminService.searchOrders(keyword, page, size);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("keyword", keyword);
+            response.put("total", results.getTotalElements());
+            response.put("orders", results.getContent());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * GET /api/admin/orders/stats
+     * Lấy thống kê orders
+     */
+    @GetMapping("/orders/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getOrderStats() {
+        try {
+            Map<String, Object> stats = adminService.getOrderStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }
