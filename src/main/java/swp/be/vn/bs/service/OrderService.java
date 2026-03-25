@@ -287,7 +287,6 @@ public class OrderService {
         BigDecimal totalPrice = order.getTotalAmount();
         BigDecimal depositPaid = order.getDepositAmount();
         BigDecimal remainingAmount = order.getRemainingAmount();
-        BigDecimal postFee = order.getPost().getPostFee();
         
         // 4. Buyer trả 80% còn lại
         if (!walletService.checkBalance(buyer.getUserId(), remainingAmount)) {
@@ -302,9 +301,10 @@ public class OrderService {
         // 5. Unlock và trừ deposit của buyer (chuyển từ lockedBalance → 0, không hoàn lại)
         walletService.unlockAndDeduct(buyer.getUserId(), depositPaid);
         
-        // 6. Seller nhận = totalPrice - postFee
-        BigDecimal sellerReceives = totalPrice.subtract(postFee);
-        walletService.deposit(seller.getUserId(), sellerReceives);
+        // 6. Seller nhận = totalPrice (postFee đã được trừ từ seller khi tạo post)
+        // Note: PostFee được tạo riêng ở createPost() bằng chargeFee()
+        // Không được trừ lại ở đây, vì phí đã là sẵn của seller
+        walletService.deposit(seller.getUserId(), totalPrice);
         
         // 8. Update order status
         order.setStatus(OrderStatus.COMPLETED);
