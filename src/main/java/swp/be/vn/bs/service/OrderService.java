@@ -307,20 +307,27 @@ public class OrderService {
         
         // 8. Update order status
         order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
+        order.setSellerConfirmedAt(LocalDateTime.now());
+        Order savedOrder = orderRepository.save(order);
+        System.out.println("✅ Order #" + orderId + " status updated to COMPLETED");
         
-        // 9. Update post status
+        // 9. Update post status to SOLD (after buyer pays remaining 80%)
         Post post = order.getPost();
         post.setStatus(PostStatus.SOLD);
-        postRepository.save(post);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
+        Post savedPost = postRepository.save(post);
+        System.out.println("✅ Post #" + savedPost.getPostId() + " status updated to SOLD");
         
         // 10. Update delivery status nếu có
         deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
             delivery.setStatus(DeliveryStatus.COMPLETED);
             deliverySessionRepository.save(delivery);
+            System.out.println("✅ Delivery session updated to COMPLETED");
         });
         
-        return mapToResponse(order);
+        System.out.println("✅ Order completion transaction finished successfully");
+        return mapToResponse(savedOrder);
     }
     
     /**

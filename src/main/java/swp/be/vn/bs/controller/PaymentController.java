@@ -51,21 +51,34 @@ public class PaymentController {
     @GetMapping("/vnpay-return")
     public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
         try {
+            // 1. Xác nhận callback từ VNPay
             paymentService.updateTransactionStatus(params);
 
+            // 2. Xây dựng redirect URL với query parameters
             String responseCode = params.get("vnp_ResponseCode");
             String txnRef = params.get("vnp_TxnRef");
-
-            Map<String, String> result = new HashMap<>();
-            if ("00".equals(responseCode)) {
-                result.put("status", "success");
-                result.put("transactionId", txnRef);
-            } else {
-                result.put("status", "failed");
-            }
-            return ResponseEntity.ok(result);
+            
+            String status = "00".equals(responseCode) ? "success" : "failed";
+            String redirectUrl = String.format(
+                "%s?status=%s&transactionId=%s&responseCode=%s",
+                paymentService.getFrontendReturnUrl(),
+                status,
+                txnRef,
+                responseCode
+            );
+            
+            // 3. Redirect về frontend (302 Found)
+            return ResponseEntity.status(302)
+                    .header("Location", redirectUrl)
+                    .build();
+                    
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Lỗi xử lý return: " + e.getMessage());
+            // 4. Nếu lỗi, redirect về frontend với status failed
+            String failedUrl = paymentService.getFrontendReturnUrl() + "?status=failed&error=" + 
+                    java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
+            return ResponseEntity.status(302)
+                    .header("Location", failedUrl)
+                    .build();
         }
     }
 

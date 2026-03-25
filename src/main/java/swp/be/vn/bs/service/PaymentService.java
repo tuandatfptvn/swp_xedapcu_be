@@ -31,6 +31,9 @@ public class PaymentService {
     @Value("${vnpay.ipnUrl}")
     private String vnp_IpnUrl;
 
+    @Value("${frontend.returnUrl:http://localhost:5173/payment/vnpay-return}")
+    private String frontendReturnUrl;
+
     @Autowired
     private WalletService walletService;
 
@@ -165,5 +168,9 @@ public class PaymentService {
             System.err.println("Looix update DB: " + e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public String getFrontendReturnUrl() {
+        return frontendReturnUrl;
     }
 }
