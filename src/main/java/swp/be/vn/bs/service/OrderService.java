@@ -134,17 +134,16 @@ public class OrderService {
             throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
         }
         
-        // Theo PHASE 2.2: Buyer cancel -> mất cọc, chuyển cọc cho seller
+        // Theo PHASE 2.2: Buyer cancel -> mất cọc, chuyển tới admin account
         User buyer = order.getBuyer();
-        User seller = order.getPost().getSeller();
         BigDecimal depositAmount = order.getDepositAmount();
 
         // 3. Mở khóa và trừ tiền cọc của buyer (lockedBalance -> 0)
         walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
 
-        // 4. Chuyển cọc cho seller
-        walletService.deposit(seller.getUserId(), depositAmount);
-        // Note: walletService.deposit() tự động tạo Transaction cho seller
+        // 4. PENALTY: Chuyển tiền bị mất do buyer hủy tới admin account (không cho seller)
+        walletService.transferFeeToAdmin(depositAmount, 
+            "Penalty - Buyer cancelled order #" + orderId);
 
         // 5. Tạo Transaction record cho buyer (PENALTY)
         transactionService.createTransaction(
@@ -153,7 +152,7 @@ public class OrderService {
             order,
             depositAmount.negate(),
             TransactionType.PENALTY,
-            "Buyer cancelled order #" + orderId + " - deposit forfeited"
+            "Buyer cancelled order #" + orderId + " - deposit forfeited to platform"
         );
 
         // 6. Unlock post
@@ -295,7 +294,7 @@ public class OrderService {
             );
         }
         
-        walletService.chargeFee(buyer.getUserId(), remainingAmount, 
+        walletService.chargePayment(buyer.getUserId(), remainingAmount, 
             "Final payment (80%) for order #" + orderId);
         
         // 5. Unlock và trừ deposit của buyer (chuyển từ lockedBalance → 0, không hoàn lại)
@@ -454,17 +453,19 @@ public class OrderService {
         }
 
         User buyer = order.getBuyer();
-        User seller = order.getPost().getSeller();
         BigDecimal depositAmount = order.getDepositAmount();
 
-        // Tru co cu buyer va chuyen khoan den bu cho seller
+        // Mở khóa và trừ tiền cọc của buyer
         walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
-        walletService.deposit(seller.getUserId(), depositAmount);
+        
+        // PENALTY: Chuyển deposit của buyer no-show tới admin account
+        walletService.transferFeeToAdmin(depositAmount, 
+            "Penalty - Buyer no-show for order #" + orderId);
 
-        //ghi nhan vi pham ( phat Buyer)
+        // Ghi nhận violation cho buyer
         violationService.recordViolation(buyer, order, "BUYER_NO_SHOW", depositAmount);
 
-        // xu ly tran thai ORDER va POST : huy don, mo lai bai dang
+        // Xử lý trạng thái order và post: hủy đơn, mở lại bài đăng
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
         postService.unlockPost(order.getPost().getPostId());

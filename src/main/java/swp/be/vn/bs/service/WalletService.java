@@ -16,6 +16,8 @@ import swp.be.vn.bs.repository.UserRepository;
 import swp.be.vn.bs.repository.WalletRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class WalletService {
@@ -151,8 +153,9 @@ public class WalletService {
     }
 
     /**
-     * Trừ tiền từ wallet (dùng cho phí đăng tin, thanh toán)
-     * Tạo Transaction record tự động
+     * Trừ tiền từ wallet (dùng cho phí đăng tin, kiểm định, etc)
+     * TỰ ĐỘNG chuyển phí tới admin account
+     * ⚠️ CHỈ DÙNG CHO FEES, KHÔNG DÙNG CHO THANH TOÁN!
      */
     @Transactional
     public Transaction chargeFee(Integer userId, BigDecimal amount, String description) {
@@ -174,9 +177,80 @@ public class WalletService {
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
         
-        return transactionService.createTransaction(
+        Transaction feeTransaction = transactionService.createTransaction(
             wallet, user, null, amount.negate(), TransactionType.FEE, description
         );
+        
+        // 🔑 KEY: Tự động chuyển phí tới admin account
+        transferFeeToAdmin(amount, description);
+        
+        return feeTransaction;
+    }
+
+    /**
+     * Trừ tiền thanh toán từ wallet (dùng cho thanh toán 80%, etc)
+     * ⚠️ KHÔNG chuyển tới admin - tiền này thuộc về seller/người nhận
+     */
+    @Transactional
+    public Transaction chargePayment(Integer userId, BigDecimal amount, String description) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Payment amount must be greater than 0");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Wallet wallet = getOrCreateWallet(user);
+
+        if (wallet.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException(
+                String.format("Insufficient balance. Required: %s, Available: %s", amount, wallet.getBalance())
+            );
+        }
+
+        wallet.setBalance(wallet.getBalance().subtract(amount));
+        walletRepository.save(wallet);
+        
+        // Ghi nhận transaction (type=PAYMENT, không tự động chuyển admin)
+        return transactionService.createTransaction(
+            wallet, user, null, amount.negate(), TransactionType.PAYMENT, description
+        );
+    }
+
+    /**
+     * Chuyển phí/penalty tới admin account duy nhất (quản lý toàn bộ commission)
+     * Lấy admin user từ database (giả sử có admin account với role=ADMIN)
+     */
+    @Transactional
+    public void transferFeeToAdmin(BigDecimal amount, String description) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Fee amount must be greater than 0");
+        }
+
+        // Tìm admin account đầu tiên (thường là ID=1 hoặc email=admin@...)
+        List<User> admins = userRepository.findAll().stream()
+                .filter(u -> u.getRole() != null && "ADMIN".equals(u.getRole().toString()))
+                .collect(Collectors.toList());
+        
+        if (admins.isEmpty()) {
+            throw new RuntimeException("⚠️ No ADMIN account found. Please create an admin account first!");
+        }
+        
+        User adminUser = admins.get(0);  // Lấy admin đầu tiên
+        Wallet adminWallet = getOrCreateWallet(adminUser);
+        
+        // Cộng tiền vào admin wallet
+        adminWallet.setBalance(adminWallet.getBalance().add(amount));
+        walletRepository.save(adminWallet);
+        
+        // Ghi nhận transaction
+        transactionService.createTransaction(
+            adminWallet, adminUser, null, amount,
+            TransactionType.DEPOSIT,
+            description + " (From: Platform Commission)"
+        );
+        
+        System.out.println("✅ Transferred " + amount + " VND to ADMIN account: " + adminUser.getEmail());
     }
 
     /**
