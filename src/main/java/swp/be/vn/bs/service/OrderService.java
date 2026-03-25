@@ -151,8 +151,15 @@ public class OrderService {
         // 6. Update order status
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
+        System.out.println("✅ Order #" + orderId + " cancelled by buyer");
+        
+        // 7. Update post status to CANCELLED (since buyer cancelled)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.CANCELLED);
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
 
-        // 7. Transaction records
+        // 8. Transaction records
         transactionService.createTransaction(
             walletService.getOrCreateWallet(buyer),
             buyer,
@@ -200,7 +207,13 @@ public class OrderService {
         // Update status + unlock post
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        postService.unlockPost(order.getPost().getPostId());
+        System.out.println("✅ Order #" + orderId + " cancelled by seller");
+        
+        // Update post status to CANCELLED (since seller cancelled)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.CANCELLED);
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
 
         // Transaction record refund
         transactionService.createTransaction(
@@ -239,6 +252,12 @@ public class OrderService {
             postService.unlockPost(post.getPostId());
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
+            System.out.println("✅ Order #" + order.getOrderId() + " auto-cancelled (expired)");
+            
+            // Update post status to EXPIRED (since deposit expired)
+            post.setStatus(PostStatus.EXPIRED);
+            postRepository.save(post);
+            System.out.println("✅ Post #" + post.getPostId() + " status updated to EXPIRED");
 
             transactionService.createTransaction(
                 walletService.getOrCreateWallet(buyer),
@@ -631,14 +650,25 @@ public class OrderService {
         // Update order status to COMPLETED
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
+        System.out.println("✅ Order #" + orderId + " status updated to COMPLETED by inspector");
+
+        // Update post status to SOLD (after inspector marks as delivered)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.SOLD);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated to SOLD");
 
         // Update delivery session status to DELIVERED
         deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
             delivery.setStatus(DeliveryStatus.DELIVERED);
             delivery.setDeliveredAt(LocalDateTime.now());
             deliverySessionRepository.save(delivery);
+            System.out.println("✅ Delivery session status updated to DELIVERED");
         });
 
+        System.out.println("✅ Inspector delivery mark completed successfully");
         return mapToResponse(order);
     }
 
