@@ -49,4 +49,25 @@ public class WalletController {
         Page<TransactionResponse> transactions = walletService.getTransactions(userId, PageRequest.of(page, size));
         return ResponseEntity.ok(transactions);
     }
+
+    /**
+     * ADMIN API: Hoàn penalty cho buyer theo tỷ lệ 1-99 (Admin-Buyer)
+     * Admin giữ 1%, Buyer lấy lại 99%
+     * POST /api/wallet/admin/refund-penalty
+     */
+    @PostMapping("/admin/refund-penalty")
+    public ResponseEntity<?> refundPenalty(
+            @RequestParam Integer buyerId,
+            @RequestParam BigDecimal penaltyAmount,
+            @RequestParam String description) {
+        try {
+            walletService.refundPenaltyToBuyer(buyerId, penaltyAmount, description);
+            BigDecimal buyerRefund = penaltyAmount.multiply(new BigDecimal("0.99"));
+            BigDecimal adminKeeps = penaltyAmount.multiply(new BigDecimal("0.01"));
+            return ResponseEntity.ok("✅ Admin keeps " + adminKeeps + " VND (1%). " +
+                    "Refunded " + buyerRefund + " VND to buyer (99%).");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("❌ Error: " + e.getMessage());
+        }
+    }
 }

@@ -35,6 +35,13 @@ public class WalletService {
     private TransactionService transactionService;
 
     // =========================================================
+    // CONFIG: Penalty Refund Ratio (Admin-Buyer)
+    // =========================================================
+    // Admin giữ: 1%, Hoàn buyer: 99%
+    private static final BigDecimal ADMIN_PENALTY_RATIO = new BigDecimal("0.01");  // 1%
+    private static final BigDecimal BUYER_PENALTY_REFUND_RATIO = new BigDecimal("0.99");  // 99%
+
+    // =========================================================
     // 1. CÁC HÀM GET & KIỂM TRA WALLET
     // =========================================================
 
@@ -251,6 +258,64 @@ public class WalletService {
         );
         
         System.out.println("✅ Transferred " + amount + " VND to ADMIN account: " + adminUser.getEmail());
+    }
+
+    /**
+     * Hoàn penalty cho buyer theo tỷ lệ (Admin: 99%, Buyer: 1%)
+     * Dùng khi admin quyết định refund một phần penalty
+     */
+    @Transactional
+    public void refundPenaltyToBuyer(Integer buyerId, BigDecimal penaltyAmount, String description) {
+        if (penaltyAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Penalty amount must be greater than 0");
+        }
+
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new RuntimeException("Buyer not found: " + buyerId));
+        
+        // Tính phần hoàn cho buyer (1%)
+        BigDecimal buyerRefund = penaltyAmount.multiply(BUYER_PENALTY_REFUND_RATIO)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        
+        // Tính phần admin giữ (99%)
+        BigDecimal adminKeeps = penaltyAmount.multiply(ADMIN_PENALTY_RATIO)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        
+        // 1. Hoàn tiền cho buyer
+        Wallet buyerWallet = getOrCreateWallet(buyer);
+        buyerWallet.setBalance(buyerWallet.getBalance().add(buyerRefund));
+        walletRepository.save(buyerWallet);
+        
+        // 2. Ghi nhận transaction cho buyer (hoàn)
+        transactionService.createTransaction(
+            buyerWallet, buyer, null, buyerRefund,
+            TransactionType.REFUND,
+            description + " - Refund (1%): " + buyerRefund
+        );
+        
+        // 3. Trừ tiền từ admin wallet (vì admin hoàn lại)
+        List<User> admins = userRepository.findAll().stream()
+                .filter(u -> u.getRole() != null && "ADMIN".equals(u.getRole().toString()))
+                .collect(Collectors.toList());
+        
+        if (!admins.isEmpty()) {
+            User adminUser = admins.get(0);
+            Wallet adminWallet = getOrCreateWallet(adminUser);
+            
+            if (adminWallet.getBalance().compareTo(buyerRefund) >= 0) {
+                adminWallet.setBalance(adminWallet.getBalance().subtract(buyerRefund));
+                walletRepository.save(adminWallet);
+                
+                // 4. Ghi nhận transaction cho admin (chi)
+                transactionService.createTransaction(
+                    adminWallet, adminUser, null, buyerRefund.negate(),
+                    TransactionType.PAYMENT,
+                    description + " - Refund to buyer (1%): -" + buyerRefund
+                );
+            }
+        }
+        
+        System.out.println("✅ Refunded " + buyerRefund + " VND to buyer. Admin keeps: " + adminKeeps);
     }
 
     /**
