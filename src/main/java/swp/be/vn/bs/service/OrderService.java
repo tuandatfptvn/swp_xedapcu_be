@@ -134,26 +134,18 @@ public class OrderService {
             throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
         }
         
-        // Theo PHASE 2.2: Buyer cancel -> mất cọc, chuyển tới admin account
+        // Theo NEW LOGIC: Buyer cancel -> split 99% hoàn buyer, 1% platform fee
         User buyer = order.getBuyer();
         BigDecimal depositAmount = order.getDepositAmount();
 
         // 3. Mở khóa và trừ tiền cọc của buyer (lockedBalance -> 0)
         walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
 
-        // 4. PENALTY: Chuyển tiền bị mất do buyer hủy tới admin account (không cho seller)
-        walletService.transferFeeToAdmin(depositAmount, 
-            "Penalty - Buyer cancelled order #" + orderId);
-
-        // 5. Tạo Transaction record cho buyer (PENALTY)
-        transactionService.createTransaction(
-            walletService.getOrCreateWallet(buyer),
-            buyer,
-            order,
-            depositAmount.negate(),
-            TransactionType.PENALTY,
-            "Buyer cancelled order #" + orderId + " - deposit forfeited to platform"
-        );
+        // 4. Split: 99% cho Buyer, 1% cho Admin (platform fee)
+        // Gọi refundPenaltyToBuyer() với toàn bộ deposit amount
+        // Hàm này sẽ tự động split 99-1 và deposit cho cả Buyer và Admin
+        walletService.refundPenaltyToBuyer(buyer.getUserId(), depositAmount, 
+            "Deposit refund (99%) + Platform fee (1%) for cancelled order #" + orderId);
 
         // 6. Unlock post
         postService.unlockPost(order.getPost().getPostId());

@@ -261,8 +261,9 @@ public class WalletService {
     }
 
     /**
-     * Hoàn penalty cho buyer theo tỷ lệ (Admin: 99%, Buyer: 1%)
-     * Dùng khi admin quyết định refund một phần penalty
+     * Hoàn penalty cho buyer theo tỷ lệ (Buyer: 99%, Admin: 1%)
+     * Dùng khi buyer cancel order - tự động split ngay
+     * hoặc khi admin quyết định refund một phần penalty
      */
     @Transactional
     public void refundPenaltyToBuyer(Integer buyerId, BigDecimal penaltyAmount, String description) {
@@ -273,49 +274,32 @@ public class WalletService {
         User buyer = userRepository.findById(buyerId)
                 .orElseThrow(() -> new RuntimeException("Buyer not found: " + buyerId));
         
-        // Tính phần hoàn cho buyer (1%)
+        // Tính phần hoàn cho buyer (99%)
         BigDecimal buyerRefund = penaltyAmount.multiply(BUYER_PENALTY_REFUND_RATIO)
                 .setScale(2, java.math.RoundingMode.HALF_UP);
         
-        // Tính phần admin giữ (99%)
+        // Tính phần admin giữ (1%)
         BigDecimal adminKeeps = penaltyAmount.multiply(ADMIN_PENALTY_RATIO)
                 .setScale(2, java.math.RoundingMode.HALF_UP);
         
-        // 1. Hoàn tiền cho buyer
+        // 1. Hoàn tiền cho buyer (99%)
         Wallet buyerWallet = getOrCreateWallet(buyer);
         buyerWallet.setBalance(buyerWallet.getBalance().add(buyerRefund));
         walletRepository.save(buyerWallet);
         
-        // 2. Ghi nhận transaction cho buyer (hoàn)
+        // 2. Ghi nhận transaction cho buyer (REFUND - 99%)
         transactionService.createTransaction(
             buyerWallet, buyer, null, buyerRefund,
             TransactionType.REFUND,
-            description + " - Refund (1%): " + buyerRefund
+            description + " - Refunded to buyer (99%): " + buyerRefund
         );
         
-        // 3. Trừ tiền từ admin wallet (vì admin hoàn lại)
-        List<User> admins = userRepository.findAll().stream()
-                .filter(u -> u.getRole() != null && "ADMIN".equals(u.getRole().toString()))
-                .collect(Collectors.toList());
+        // 3. Transfer phần admin giữ (1%) từ admin wallet
+        transferFeeToAdmin(adminKeeps, 
+            description + " - Platform fee (1%): " + adminKeeps);
         
-        if (!admins.isEmpty()) {
-            User adminUser = admins.get(0);
-            Wallet adminWallet = getOrCreateWallet(adminUser);
-            
-            if (adminWallet.getBalance().compareTo(buyerRefund) >= 0) {
-                adminWallet.setBalance(adminWallet.getBalance().subtract(buyerRefund));
-                walletRepository.save(adminWallet);
-                
-                // 4. Ghi nhận transaction cho admin (chi)
-                transactionService.createTransaction(
-                    adminWallet, adminUser, null, buyerRefund.negate(),
-                    TransactionType.PAYMENT,
-                    description + " - Refund to buyer (1%): -" + buyerRefund
-                );
-            }
-        }
-        
-        System.out.println("✅ Refunded " + buyerRefund + " VND to buyer. Admin keeps: " + adminKeeps);
+        System.out.println("✅ Split complete - Buyer refunded: " + buyerRefund + " VND (99%). Admin fee: " + adminKeeps + " VND (1%)");
+
     }
 
     /**
