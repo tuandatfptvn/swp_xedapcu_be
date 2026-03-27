@@ -294,6 +294,15 @@ public class AdminService {
     }
     
     /**
+     * Lọc orders theo status
+     */
+    public Page<OrderResponse> getOrdersByStatus(OrderStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return orderRepository.findByStatus(status, pageable)
+                .map(orderService::mapToResponse);
+    }
+    
+    /**
      * Lấy thống kê orders
      */
     public Map<String, Object> getOrderStats() {

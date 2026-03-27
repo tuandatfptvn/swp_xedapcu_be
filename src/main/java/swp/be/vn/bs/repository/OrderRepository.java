@@ -28,6 +28,8 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime createdAt);
 
+    Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+
     @Query("SELECT o FROM Order o WHERE " +
            "LOWER(o.buyer.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(o.post.seller.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

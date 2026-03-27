@@ -442,6 +442,33 @@ public class AdminController {
     }
     
     /**
+     * GET /api/admin/orders/status/{status}
+     * Lọc orders theo status
+     */
+    @GetMapping("/orders/status/{status}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getOrdersByStatus(
+            @PathVariable String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            swp.be.vn.bs.entity.OrderStatus orderStatus = swp.be.vn.bs.entity.OrderStatus.valueOf(status.toUpperCase());
+            Page<swp.be.vn.bs.dto.response.OrderResponse> orders = adminService.getOrdersByStatus(orderStatus, page, size);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", status);
+            response.put("total", orders.getTotalElements());
+            response.put("orders", orders.getContent());
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error: Invalid order status: " + status);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
      * GET /api/admin/orders/stats
      * Lấy thống kê orders
      */
