@@ -25,6 +25,9 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByPost_Seller_Email(String sellerEmail);
     
     Optional<Order> findByPost_PostId(Integer postId);
+    
+    // Tìm ACTIVE order cho post này (chỉ có 1 active order per post)
+    Optional<Order> findByPost_PostIdAndIsActiveTrue(Integer postId);
 
     List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime createdAt);
 

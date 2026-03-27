@@ -20,7 +20,7 @@ public class Order {
     private Integer orderId;
     
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false, unique = true)
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,6 +59,12 @@ public class Order {
     
     @Column(name = "admin_reviewed_at")
     private LocalDateTime adminReviewedAt;
+    
+    @Column(name = "is_active", nullable = true, columnDefinition = "boolean default true")
+    private Boolean isActive = true;
+    
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;

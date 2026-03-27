@@ -66,8 +66,8 @@ public class OrderService {
             throw new RuntimeException("You cannot buy your own bicycle");
         }
         
-        // 4. Check post đã có order chưa
-        if (orderRepository.findByPost_PostId(postId).isPresent()) {
+        // 4. Check post đã có ACTIVE order chưa (cancelled orders không count)
+        if (orderRepository.findByPost_PostIdAndIsActiveTrue(postId).isPresent()) {
             throw new RuntimeException("This post already has an active order");
         }
         
@@ -152,6 +152,8 @@ public class OrderService {
 
         // 7. Update order status
         order.setStatus(OrderStatus.CANCELLED);
+        order.setIsActive(false);  // Mark order as inactive
+        order.setCancelledAt(LocalDateTime.now());  // Record when cancelled
         orderRepository.save(order);
         System.out.println("✅ Order #" + orderId + " cancelled by buyer");
         
@@ -202,6 +204,8 @@ public class OrderService {
         
         // 4. Update status + unlock post
         order.setStatus(OrderStatus.CANCELLED);
+        order.setIsActive(false);  // Mark order as inactive
+        order.setCancelledAt(LocalDateTime.now());  // Record when cancelled
         orderRepository.save(order);
         System.out.println("✅ Order #" + orderId + " cancelled by seller");
         
@@ -239,6 +243,8 @@ public class OrderService {
             // Unlock post & cancel order
             postService.unlockPost(post.getPostId());
             order.setStatus(OrderStatus.CANCELLED);
+            order.setIsActive(false);  // Mark order as inactive
+            order.setCancelledAt(LocalDateTime.now());  // Record when cancelled
             orderRepository.save(order);
             System.out.println("✅ Order #" + order.getOrderId() + " auto-cancelled (expired)");
             
@@ -475,6 +481,8 @@ public class OrderService {
 
         // Xử lý trạng thái order và post: hủy đơn, mở lại bài đăng
         order.setStatus(OrderStatus.CANCELLED);
+        order.setIsActive(false);  // Mark order as inactive
+        order.setCancelledAt(LocalDateTime.now());  // Record when cancelled
         orderRepository.save(order);
         
         // Update post status back to ACTIVE (so seller can sell to others)
@@ -513,6 +521,8 @@ public class OrderService {
 
         // Huy don va mo bai lai
         order.setStatus(OrderStatus.CANCELLED);
+        order.setIsActive(false);  // Mark order as inactive
+        order.setCancelledAt(LocalDateTime.now());  // Record when cancelled
         orderRepository.save(order);
         
         // Update post status back to ACTIVE (so seller can sell to others)
