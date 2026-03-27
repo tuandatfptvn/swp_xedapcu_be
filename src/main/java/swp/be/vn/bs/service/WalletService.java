@@ -163,9 +163,11 @@ public class WalletService {
      * Trừ tiền từ wallet (dùng cho phí đăng tin, kiểm định, etc)
      * TỰ ĐỘNG chuyển phí tới admin account
      * ⚠️ CHỈ DÙNG CHO FEES, KHÔNG DÙNG CHO THANH TOÁN!
+     * 
+     * @param transactionType FEE (mặc định), hoặc POST_FEE, INSPECTION_FEE, PENALTY, etc.
      */
     @Transactional
-    public Transaction chargeFee(Integer userId, BigDecimal amount, String description) {
+    public Transaction chargeFee(Integer userId, BigDecimal amount, String description, TransactionType transactionType) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Amount must be greater than 0");
         }
@@ -185,13 +187,21 @@ public class WalletService {
         walletRepository.save(wallet);
         
         Transaction feeTransaction = transactionService.createTransaction(
-            wallet, user, null, amount.negate(), TransactionType.FEE, description
+            wallet, user, null, amount.negate(), transactionType, description
         );
         
         // 🔑 KEY: Tự động chuyển phí tới admin account
         transferFeeToAdmin(amount, description);
         
         return feeTransaction;
+    }
+    
+    /**
+     * Overload: Gọi chargeFee với TransactionType.FEE mặc định
+     */
+    @Transactional
+    public Transaction chargeFee(Integer userId, BigDecimal amount, String description) {
+        return chargeFee(userId, amount, description, TransactionType.FEE);
     }
 
     /**
@@ -287,11 +297,12 @@ public class WalletService {
         buyerWallet.setBalance(buyerWallet.getBalance().add(buyerRefund));
         walletRepository.save(buyerWallet);
         
-        // 2. Ghi nhận transaction cho buyer (REFUND - 99%)
+        // 2. Ghi nhận transaction cho buyer (PENALTY - mặc dù hoàn 99% nhưng vẫn là PENALTY)
+        // Để track rõ ràng đây là tiền phạt được hoàn lại, không phải refund bình thường
         transactionService.createTransaction(
             buyerWallet, buyer, null, buyerRefund,
-            TransactionType.REFUND,
-            description + " - Refunded to buyer (99%): " + buyerRefund
+            TransactionType.PENALTY,
+            description + " - Penalty refund to buyer (99%): " + buyerRefund
         );
         
         // 3. Transfer phần admin giữ (1%) từ admin wallet

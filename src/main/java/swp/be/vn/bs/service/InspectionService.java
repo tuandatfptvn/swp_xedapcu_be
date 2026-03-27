@@ -247,7 +247,8 @@ public class InspectionService {
         }
         
         walletService.chargeFee(payer.getUserId(), fee, 
-            "Inspection fee for post: " + post.getTitle());
+            "Inspection fee for post: " + post.getTitle(),
+            TransactionType.INSPECTION_FEE);
         
         // 6. Update inspection request status
         inspectionRequest.setStatus(InspectionStatus.COMPLETED);

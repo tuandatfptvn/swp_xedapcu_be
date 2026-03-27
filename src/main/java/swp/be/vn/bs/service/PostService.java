@@ -13,6 +13,7 @@ import swp.be.vn.bs.entity.Bicycle;
 import swp.be.vn.bs.entity.Post;
 import swp.be.vn.bs.entity.PostStatus;
 import swp.be.vn.bs.entity.User;
+import swp.be.vn.bs.entity.TransactionType;
 import swp.be.vn.bs.repository.BicycleRepository;
 import swp.be.vn.bs.repository.PostRepository;
 import swp.be.vn.bs.repository.UserRepository;
@@ -83,7 +84,8 @@ public class PostService {
         }
         
         walletService.chargeFee(seller.getUserId(), postFee,
-                String.format("Post fee (%s%%) for listing bicycle: %s", (feeRate * 100), request.getTitle()));
+                String.format("Post fee (%s%%) for listing bicycle: %s", (feeRate * 100), request.getTitle()),
+                TransactionType.FEE);
         
         Post post = new Post();
         post.setSeller(seller);

@@ -155,11 +155,13 @@ public class OrderService {
         orderRepository.save(order);
         System.out.println("✅ Order #" + orderId + " cancelled by buyer");
         
-        // 8. Update post status to CANCELLED (since buyer cancelled)
+        // 8. Update post status back to ACTIVE (so seller can sell to others)
         Post post = order.getPost();
-        post.setStatus(PostStatus.CANCELLED);
+        post.setStatus(PostStatus.ACTIVE);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
         postRepository.save(post);
-        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
+        System.out.println("✅ Post #" + post.getPostId() + " status updated back to ACTIVE");
     }
 
     /**
@@ -182,24 +184,10 @@ public class OrderService {
         User seller = order.getPost().getSeller();
         BigDecimal depositAmount = order.getDepositAmount();
 
-        // Refund cọc cho buyer (lockedBalance -> balance)
+        // 1. Refund cọc cho buyer (lockedBalance -> balance)
         walletService.unlockBalance(buyer.getUserId(), depositAmount);
-
-        // Violation cho seller
-        violationService.recordViolation(seller, order, "SELLER_CANCEL", BigDecimal.ZERO);
-
-        // Update status + unlock post
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
-        System.out.println("✅ Order #" + orderId + " cancelled by seller");
         
-        // Update post status to CANCELLED (since seller cancelled)
-        Post post = order.getPost();
-        post.setStatus(PostStatus.CANCELLED);
-        postRepository.save(post);
-        System.out.println("✅ Post #" + post.getPostId() + " status updated to CANCELLED");
-
-        // Transaction record refund
+        // 2. Ghi nhận REFUND transaction cho buyer
         transactionService.createTransaction(
             walletService.getOrCreateWallet(buyer),
             buyer,
@@ -208,6 +196,22 @@ public class OrderService {
             TransactionType.REFUND,
             "Refund deposit for seller-cancelled order #" + orderId
         );
+        
+        // 3. Ghi nhận violation cho seller (chỉ violationCount++, không trừ tiền)
+        violationService.recordViolation(seller, order, "SELLER_CANCEL", BigDecimal.ZERO);
+        
+        // 4. Update status + unlock post
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        System.out.println("✅ Order #" + orderId + " cancelled by seller");
+        
+        // 5. Update post status back to ACTIVE (so seller can sell to others)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.ACTIVE);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated back to ACTIVE");
     }
 
     /**
@@ -238,10 +242,12 @@ public class OrderService {
             orderRepository.save(order);
             System.out.println("✅ Order #" + order.getOrderId() + " auto-cancelled (expired)");
             
-            // Update post status to EXPIRED (since deposit expired)
-            post.setStatus(PostStatus.EXPIRED);
+            // Update post status back to ACTIVE (so seller can sell to others)
+            post.setStatus(PostStatus.ACTIVE);
+            post.setReservedUntil(null);  // Clear reservation timestamp
+            post.setReservedBy(null);     // Clear who reserved it
             postRepository.save(post);
-            System.out.println("✅ Post #" + post.getPostId() + " status updated to EXPIRED");
+            System.out.println("✅ Post #" + post.getPostId() + " status updated back to ACTIVE");
 
             transactionService.createTransaction(
                 walletService.getOrCreateWallet(buyer),
@@ -450,7 +456,17 @@ public class OrderService {
         // Mở khóa và trừ tiền cọc của buyer
         walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
         
-        // PENALTY: Chuyển deposit của buyer no-show tới admin account
+        // PENALTY: Ghi nhận transaction type PENALTY cho buyer
+        transactionService.createTransaction(
+            walletService.getOrCreateWallet(buyer),
+            buyer,
+            order,
+            depositAmount.negate(),
+            TransactionType.PENALTY,
+            "Buyer no-show for order #" + orderId + " - deposit forfeited to platform"
+        );
+        
+        // Chuyển deposit của buyer no-show tới admin account
         walletService.transferFeeToAdmin(depositAmount, 
             "Penalty - Buyer no-show for order #" + orderId);
 
@@ -460,6 +476,15 @@ public class OrderService {
         // Xử lý trạng thái order và post: hủy đơn, mở lại bài đăng
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
+        
+        // Update post status back to ACTIVE (so seller can sell to others)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.ACTIVE);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated back to ACTIVE");
+        
         postService.unlockPost(order.getPost().getPostId());
     }
 
@@ -489,6 +514,15 @@ public class OrderService {
         // Huy don va mo bai lai
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
+        
+        // Update post status back to ACTIVE (so seller can sell to others)
+        Post post = order.getPost();
+        post.setStatus(PostStatus.ACTIVE);
+        post.setReservedUntil(null);  // Clear reservation timestamp
+        post.setReservedBy(null);     // Clear who reserved it
+        postRepository.save(post);
+        System.out.println("✅ Post #" + post.getPostId() + " status updated back to ACTIVE");
+        
         postService.unlockPost(order.getPost().getPostId());
     }
 
