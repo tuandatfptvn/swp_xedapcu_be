@@ -54,7 +54,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                     .picture(picture)
                     .provider("google")
                     .providerId(googleId)
-                    .role(Role.USER)
+                    .role(Role.BUYER)
                     .build();
             user = userRepository.save(user);
             
