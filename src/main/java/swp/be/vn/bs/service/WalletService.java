@@ -190,8 +190,8 @@ public class WalletService {
             wallet, user, null, amount.negate(), transactionType, description
         );
         
-        // 🔑 KEY: Tự động chuyển phí tới admin account
-        transferFeeToAdmin(amount, description);
+        // 🔑 KEY: Tự động chuyển phí tới admin account (với same transaction type)
+        transferFeeToAdmin(amount, description, transactionType);
         
         return feeTransaction;
     }
@@ -237,9 +237,10 @@ public class WalletService {
     /**
      * Chuyển phí/penalty tới admin account duy nhất (quản lý toàn bộ commission)
      * Lấy admin user từ database (giả sử có admin account với role=ADMIN)
+     * transactionType: Loại transaction (FEE, INSPECTION_FEE, PENALTY, etc.)
      */
     @Transactional
-    public void transferFeeToAdmin(BigDecimal amount, String description) {
+    public void transferFeeToAdmin(BigDecimal amount, String description, TransactionType transactionType) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Fee amount must be greater than 0");
         }
@@ -260,14 +261,22 @@ public class WalletService {
         adminWallet.setBalance(adminWallet.getBalance().add(amount));
         walletRepository.save(adminWallet);
         
-        // Ghi nhận transaction
+        // Ghi nhận transaction với đúng transaction type
         transactionService.createTransaction(
             adminWallet, adminUser, null, amount,
-            TransactionType.DEPOSIT,
+            transactionType,
             description + " (From: Platform Commission)"
         );
         
         System.out.println("✅ Transferred " + amount + " VND to ADMIN account: " + adminUser.getEmail());
+    }
+    
+    /**
+     * Overload: transferFeeToAdmin với TransactionType.DEPOSIT mặc định (để backward compatibility)
+     */
+    @Transactional
+    public void transferFeeToAdmin(BigDecimal amount, String description) {
+        transferFeeToAdmin(amount, description, TransactionType.DEPOSIT);
     }
 
     /**
@@ -305,9 +314,10 @@ public class WalletService {
             description + " - Penalty refund to buyer (99%): " + buyerRefund
         );
         
-        // 3. Transfer phần admin giữ (1%) từ admin wallet
+        // 3. Transfer phần admin giữ (1%) từ admin wallet (dùng PENALTY type để track)
         transferFeeToAdmin(adminKeeps, 
-            description + " - Platform fee (1%): " + adminKeeps);
+            description + " - Platform fee (1%): " + adminKeeps,
+            TransactionType.PENALTY);
         
         System.out.println("✅ Split complete - Buyer refunded: " + buyerRefund + " VND (99%). Admin fee: " + adminKeeps + " VND (1%)");
 

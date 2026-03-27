@@ -71,9 +71,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             walletService.getOrCreateWallet(user);
         }
         
-        String token = jwtTokenProvider.generateTokenFromEmailAndRole(
+        String token = jwtTokenProvider.generateTokenFromEmailRoleAndId(
                 user.getEmail(),
-                "ROLE_" + user.getRole().name()
+                "ROLE_" + user.getRole().name(),
+                user.getUserId()
         );
         
         String redirectUrl = String.format("%s%s?token=%s&email=%s&role=%s",

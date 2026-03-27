@@ -52,6 +52,20 @@ public class JwtTokenProvider {
                 .compact();
     }
     
+    public String generateTokenFromEmailRoleAndId(String email, String role, Integer userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+        
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("role", role)
+                .claim("userId", userId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+    
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -70,6 +84,23 @@ public class JwtTokenProvider {
                 .getBody();
         
         return claims.get("role", String.class);
+    }
+    
+    public Integer getUserIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        Object userIdObj = claims.get("userId");
+        if (userIdObj == null) {
+            return null;
+        }
+        if (userIdObj instanceof Integer) {
+            return (Integer) userIdObj;
+        }
+        return ((Number) userIdObj).intValue();
     }
     
     public boolean validateToken(String token) {

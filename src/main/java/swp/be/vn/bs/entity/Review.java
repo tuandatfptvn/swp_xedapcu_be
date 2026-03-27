@@ -30,10 +30,10 @@ public class Review {
     @JoinColumn(name = "to_user_id", nullable = false)
     private User toUser;
     
-    @Column(name = "rating")
+    @Column(name = "rating", nullable = true)
     private Integer rating;
     
-    @Column(name = "comment", columnDefinition = "TEXT")
+    @Column(name = "comment", columnDefinition = "TEXT", nullable = true)
     private String comment;
     
     @Column(name = "created_at")

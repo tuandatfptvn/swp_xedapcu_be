@@ -53,9 +53,10 @@ public class AuthService {
         // Auto tạo wallet cho user mới
         walletService.getOrCreateWallet(savedUser);
         
-        String token = jwtTokenProvider.generateTokenFromEmailAndRole(
+        String token = jwtTokenProvider.generateTokenFromEmailRoleAndId(
                 user.getEmail(), 
-                "ROLE_" + user.getRole().name()
+                "ROLE_" + user.getRole().name(),
+                savedUser.getUserId()
         );
         
         return AuthResponse.builder()
