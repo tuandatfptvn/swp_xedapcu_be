@@ -80,7 +80,11 @@ public class AuthService {
             );
             
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String token = jwtTokenProvider.generateToken(authentication);
+            String token = jwtTokenProvider.generateTokenFromEmailRoleAndId(
+                    user.getEmail(),
+                    "ROLE_" + user.getRole().name(),
+                    user.getUserId()
+            );
             
             return AuthResponse.builder()
                     .userId(user.getUserId())
