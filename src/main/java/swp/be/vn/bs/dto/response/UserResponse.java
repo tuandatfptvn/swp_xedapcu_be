@@ -16,6 +16,7 @@ public class UserResponse {
     private Role role;
     private String provider;
     private String fullName;
+    private String phone;
     private String picture;
     private Boolean isActive;
 }

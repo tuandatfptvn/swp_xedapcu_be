@@ -19,11 +19,14 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         
         return UserResponse.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
+                .phone(user.getPhone())
                 .role(user.getRole())
                 .provider(user.getProvider())
                 .picture(user.getPicture())
+                .isActive(user.getIsActive())
                 .build();
     }
     
@@ -32,10 +35,14 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         
         return UserResponse.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
+                .phone(user.getPhone())
                 .role(user.getRole())
+                .provider(user.getProvider())
                 .picture(user.getPicture())
+                .isActive(user.getIsActive())
                 .build();
     }
     
@@ -50,11 +57,14 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         
         return UserResponse.builder()
+                .userId(updatedUser.getUserId())
                 .email(updatedUser.getEmail())
                 .fullName(updatedUser.getFullName())
+                .phone(updatedUser.getPhone())
                 .role(updatedUser.getRole())
                 .provider(updatedUser.getProvider())
                 .picture(updatedUser.getPicture())
+                .isActive(updatedUser.getIsActive())
                 .build();
     }
 }

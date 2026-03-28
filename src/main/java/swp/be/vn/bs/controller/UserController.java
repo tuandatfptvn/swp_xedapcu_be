@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import swp.be.vn.bs.dto.request.UpdateProfileRequest;
+import swp.be.vn.bs.dto.request.UpdateUserRequest;
 import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.service.UserService;
 
