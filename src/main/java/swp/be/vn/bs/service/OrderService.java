@@ -684,6 +684,7 @@ public class OrderService {
 
     /**
      * Inspector lấy danh sách delivery tasks được assign cho chính mình
+     * Bao gồm: ASSIGNED_TO_INSPECTOR, IN_DELIVERY, COMPLETED
      */
     public List<OrderResponse> getMyDeliveryTasks(String inspectorEmail) {
         User inspector = userRepository.findByEmail(inspectorEmail)
@@ -694,11 +695,13 @@ public class OrderService {
             throw new RuntimeException("User is not an inspector");
         }
 
-        // Get all orders assigned to this inspector (ASSIGNED_TO_INSPECTOR or IN_DELIVERY)
+        // Get all orders assigned to this inspector (ASSIGNED_TO_INSPECTOR, IN_DELIVERY, or COMPLETED)
         List<Order> orders = orderRepository.findAll().stream()
                 .filter(o -> o.getAssignedInspector() != null)
                 .filter(o -> o.getAssignedInspector().getUserId().equals(inspector.getUserId()))
-                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR || o.getStatus() == OrderStatus.IN_DELIVERY)
+                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR || 
+                            o.getStatus() == OrderStatus.IN_DELIVERY || 
+                            o.getStatus() == OrderStatus.COMPLETED)
                 .collect(Collectors.toList());
 
         return orders.stream()

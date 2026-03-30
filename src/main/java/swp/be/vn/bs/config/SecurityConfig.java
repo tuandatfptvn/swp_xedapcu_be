@@ -84,6 +84,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/bicycles").permitAll()
                 .requestMatchers("/api/bicycles/**").permitAll()
                 .requestMatchers("/api/categories/**").permitAll()
+                    .requestMatchers("/api/orders/**").permitAll()
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
