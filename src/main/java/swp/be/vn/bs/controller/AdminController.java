@@ -7,10 +7,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import swp.be.vn.bs.dto.request.UpdateRoleRequest;
 import swp.be.vn.bs.dto.response.UserResponse;
+import swp.be.vn.bs.dto.response.InspectionReportResponse;
 import swp.be.vn.bs.entity.Role;
 import swp.be.vn.bs.entity.Post;
 import swp.be.vn.bs.entity.PostStatus;
 import swp.be.vn.bs.service.AdminService;
+import swp.be.vn.bs.service.InspectionService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,9 @@ public class AdminController {
     
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private InspectionService inspectionService;
     
     /**
      * GET /api/admin/users
@@ -451,6 +456,20 @@ public class AdminController {
         try {
             Map<String, Object> stats = adminService.getOrderStats();
             return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    /**
+     * GET /api/admin/inspections/{inspectionId}/report
+     * Admin xem báo cáo kiểm định
+     */
+    @GetMapping("/inspections/{inspectionId}/report")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getInspectionReport(@PathVariable Integer inspectionId) {
+        try {
+            InspectionReportResponse report = inspectionService.getReport(inspectionId);
+            return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
