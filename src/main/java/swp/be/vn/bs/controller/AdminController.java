@@ -214,7 +214,7 @@ public class AdminController {
             adminService.deleteUser(email);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "✅ User deleted successfully!");
+            response.put("message", "✅ User account deactivated successfully (Soft delete)!");
             response.put("email", email);
             
             return ResponseEntity.ok(response);
