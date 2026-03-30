@@ -248,7 +248,7 @@ public class OrderService {
     /**
      * Map Order entity to OrderResponse DTO
      */
-    private OrderResponse mapToResponse(Order order) {
+    public OrderResponse mapToResponse(Order order) {
         Post post = order.getPost();
         
         OrderResponse.BuyerInfo buyerInfo = OrderResponse.BuyerInfo.builder()
