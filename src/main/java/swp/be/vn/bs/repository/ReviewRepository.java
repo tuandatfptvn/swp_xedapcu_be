@@ -45,4 +45,17 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     // Check if order can be reviewed (order must exist and belong to buyer)
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Review r WHERE r.order.orderId = :orderId AND r.fromUser.userId = :buyerId")
     boolean existsReviewForOrder(@Param("orderId") Integer orderId, @Param("buyerId") Integer buyerId);
+    
+    // ==================== OPTIMIZED QUERIES WITH EAGER LOAD ====================
+    
+    /**
+     * Get all reviews for a seller with eager loading (avoid N+1)
+     */
+    @Query("SELECT DISTINCT r FROM Review r " +
+           "LEFT JOIN FETCH r.fromUser " +
+           "LEFT JOIN FETCH r.toUser " +
+           "LEFT JOIN FETCH r.order " +
+           "WHERE r.toUser.userId = :sellerId " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findAllSellerReviewsWithEagerLoad(@Param("sellerId") Integer sellerId, Pageable pageable);
 }

@@ -270,7 +270,8 @@ public class InspectionService {
      * Lấy danh sách bookings (for admin/inspector)
      */
     public List<InspectionBookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
+        // OPTIMIZED: Use eager load query instead of findAll()
+        return bookingRepository.findAllWithEagerLoad().stream()
                 .map(booking -> mapBookingToResponse(booking, booking.getPost().getSeller()))
                 .collect(Collectors.toList());
     }

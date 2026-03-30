@@ -695,14 +695,8 @@ public class OrderService {
             throw new RuntimeException("User is not an inspector");
         }
 
-        // Get all orders assigned to this inspector (ASSIGNED_TO_INSPECTOR, IN_DELIVERY, or COMPLETED)
-        List<Order> orders = orderRepository.findAll().stream()
-                .filter(o -> o.getAssignedInspector() != null)
-                .filter(o -> o.getAssignedInspector().getUserId().equals(inspector.getUserId()))
-                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR || 
-                            o.getStatus() == OrderStatus.IN_DELIVERY || 
-                            o.getStatus() == OrderStatus.COMPLETED)
-                .collect(Collectors.toList());
+        // OPTIMIZED: Use custom query instead of findAll().stream().filter()
+        List<Order> orders = orderRepository.findDeliveryTasksByInspector(inspector.getUserId());
 
         return orders.stream()
                 .map(this::mapToResponse)

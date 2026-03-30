@@ -1,6 +1,7 @@
 package swp.be.vn.bs.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import swp.be.vn.bs.entity.BookingStatus;
 import swp.be.vn.bs.entity.InspectionBooking;
@@ -51,4 +52,12 @@ public interface InspectionBookingRepository extends JpaRepository<InspectionBoo
      * Tìm booking active của post (PENDING hoặc CONFIRMED)
      */
     Optional<InspectionBooking> findByPost_PostIdAndStatusIn(Integer postId, List<BookingStatus> statuses);
+    
+    // ==================== OPTIMIZED QUERIES ====================
+    
+    /**
+     * Lấy tất cả bookings với eager load post và seller
+     */
+    @Query("SELECT b FROM InspectionBooking b LEFT JOIN FETCH b.post p LEFT JOIN FETCH p.seller ORDER BY b.createdAt DESC")
+    List<InspectionBooking> findAllWithEagerLoad();
 }

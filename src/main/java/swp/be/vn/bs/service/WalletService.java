@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swp.be.vn.bs.dto.response.TransactionResponse;
+import swp.be.vn.bs.entity.Role;
 import swp.be.vn.bs.entity.Transaction;
 import swp.be.vn.bs.entity.TransactionStatus;
 import swp.be.vn.bs.entity.TransactionType;
@@ -246,9 +247,8 @@ public class WalletService {
         }
 
         // Tìm admin account đầu tiên (thường là ID=1 hoặc email=admin@...)
-        List<User> admins = userRepository.findAll().stream()
-                .filter(u -> u.getRole() != null && "ADMIN".equals(u.getRole().toString()))
-                .collect(Collectors.toList());
+        // OPTIMIZED: Use custom query instead of findAll().stream().filter()
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
         
         if (admins.isEmpty()) {
             throw new RuntimeException("⚠️ No ADMIN account found. Please create an admin account first!");

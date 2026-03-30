@@ -84,9 +84,8 @@ public class AdminService {
      * Tìm kiếm user theo email hoặc tên
      */
     public List<UserResponse> searchUsers(String keyword) {
-        return userRepository.findAll().stream()
-                .filter(user -> user.getEmail().contains(keyword) || 
-                        (user.getFullName() != null && user.getFullName().contains(keyword)))
+        // OPTIMIZED: Use custom query with LIKE instead of findAll().stream().filter()
+        return userRepository.searchUsersByKeyword(keyword).stream()
                 .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }
@@ -95,8 +94,8 @@ public class AdminService {
      * Lọc user theo role
      */
     public List<UserResponse> getUsersByRole(Role role) {
-        return userRepository.findAll().stream()
-                .filter(user -> user.getRole() == role)
+        // OPTIMIZED: Use custom query instead of findAll().stream().filter()
+        return userRepository.findByRole(role).stream()
                 .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }

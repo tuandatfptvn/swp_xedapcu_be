@@ -38,14 +38,8 @@ public class AdminOrderService {
             throw new RuntimeException("User is not an admin");
         }
 
-        // Get all orders in delivery workflow statuses
-        List<Order> orders = orderRepository.findAll().stream()
-                .filter(o -> o.getStatus() == OrderStatus.PENDING_SELLER_CONFIRMATION ||
-                           o.getStatus() == OrderStatus.PENDING_ADMIN_REVIEW ||
-                           o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR ||
-                           o.getStatus() == OrderStatus.IN_DELIVERY)
-                .sorted((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt())) // Newest first
-                .collect(Collectors.toList());
+        // OPTIMIZED: Use custom query instead of findAll().stream().filter()
+        List<Order> orders = orderRepository.findDeliveryOrders();
 
         return orders.stream()
                 .map(orderService::mapToResponse)
@@ -80,11 +74,8 @@ public class AdminOrderService {
             throw new RuntimeException("Status " + statusStr + " is not in delivery workflow");
         }
 
-        // Get orders with specific status
-        List<Order> orders = orderRepository.findAll().stream()
-                .filter(o -> o.getStatus() == status)
-                .sorted((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt())) // Newest first
-                .collect(Collectors.toList());
+        // OPTIMIZED: Use custom query instead of findAll().stream().filter()
+        List<Order> orders = orderRepository.findByStatusOrderByCreatedAtDesc(status);
 
         return orders.stream()
                 .map(orderService::mapToResponse)
