@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import swp.be.vn.bs.dto.request.UpdateRoleRequest;
 import swp.be.vn.bs.dto.response.UserResponse;
 import swp.be.vn.bs.dto.response.InspectionReportResponse;
+import swp.be.vn.bs.dto.response.DashboardSummaryResponse;
 import swp.be.vn.bs.entity.Role;
 import swp.be.vn.bs.entity.Post;
 import swp.be.vn.bs.entity.PostStatus;
@@ -472,6 +473,21 @@ public class AdminController {
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * GET /api/admin/dashboard/summary
+     * Lấy dashboard tổng quát cho admin
+     */
+    @GetMapping("/dashboard/summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getDashboardSummary() {
+        try {
+            DashboardSummaryResponse summary = adminService.getDashboardSummary();
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching dashboard: " + e.getMessage());
         }
     }
 }

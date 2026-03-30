@@ -17,6 +17,9 @@ import swp.be.vn.bs.dto.response.OrderResponse;
 import swp.be.vn.bs.repository.UserRepository;
 import swp.be.vn.bs.repository.PostRepository;
 import swp.be.vn.bs.repository.OrderRepository;
+import swp.be.vn.bs.repository.WalletRepository;
+import swp.be.vn.bs.repository.TransactionRepository;
+import swp.be.vn.bs.dto.response.DashboardSummaryResponse;
 import swp.be.vn.bs.service.OrderService;
 
 import java.util.List;
@@ -34,6 +37,12 @@ public class AdminService {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private WalletRepository walletRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
     
     @Autowired
     private OrderService orderService;
@@ -319,5 +328,39 @@ public class AdminService {
         stats.put("totalRevenue", totalRevenue);
             
         return stats;
+    }
+
+    /**
+     * Lấy dashboard tổng quát cho admin
+     */
+    public DashboardSummaryResponse getDashboardSummary() {
+        // 1. Doanh thu hệ thống (Platform Revenue) = Tổng số dư hiện có trong ví ADMIN (các phí nạp vào sàn)
+        java.math.BigDecimal platformRevenue = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.ADMIN)
+                .map(u -> {
+                    return walletRepository.findByUser_UserId(u.getUserId())
+                            .map(swp.be.vn.bs.entity.Wallet::getBalance)
+                            .orElse(java.math.BigDecimal.ZERO);
+                })
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // 2. Tổng giá trị giao dịch thành công (GMV - Gross Merchandise Value)
+        java.math.BigDecimal totalOrderValue = orderRepository.findAll().stream()
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
+                .map(Order::getTotalAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        long totalTransactions = transactionRepository.count();
+
+        return DashboardSummaryResponse.builder()
+                .userStats(getUserStats())
+                .postStats(getPostStats())
+                .orderStats(getOrderStats())
+                .financialStats(DashboardSummaryResponse.FinancialStats.builder()
+                        .platformRevenue(platformRevenue)
+                        .totalOrderValue(totalOrderValue)
+                        .totalTransactions(totalTransactions)
+                        .build())
+                .build();
     }
 }
