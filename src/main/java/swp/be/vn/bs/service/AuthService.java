@@ -72,6 +72,9 @@ public class AuthService {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("Invalid email or password"));
             
+            if (user.getIsActive() != null && !user.getIsActive()) {
+                throw new RuntimeException("Account has been deactivated. Please contact support.");
+            }
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),

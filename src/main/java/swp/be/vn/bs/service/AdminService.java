@@ -177,13 +177,14 @@ public class AdminService {
     }
     
     /**
-     * Xóa user
+     * Xóa user (Soft delete - chuyển isActive sang false)
      */
     public void deleteUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         
-        userRepository.delete(user);
+        user.setIsActive(false);
+        userRepository.save(user);
     }
     
     // ===== POST MANAGEMENT =====
