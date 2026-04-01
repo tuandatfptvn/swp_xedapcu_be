@@ -41,6 +41,7 @@ public class OrderResponse {
         private Integer userId;
         private String email;
         private String fullName;
+        private String phone;  // ✅ Thêm phone
     }
     
     @Data

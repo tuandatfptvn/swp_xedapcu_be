@@ -371,6 +371,7 @@ public class OrderService {
                 .userId(order.getBuyer().getUserId())
                 .email(order.getBuyer().getEmail())
                 .fullName(order.getBuyer().getFullName())
+                .phone(order.getBuyer().getPhone())  // ✅ Thêm phone
                 .build();
         
         OrderResponse.SellerInfo sellerInfo = OrderResponse.SellerInfo.builder()
