@@ -23,6 +23,7 @@ public class OrderResponse {
     private OrderStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
+    private String pickupAddress;      // ✅ Seller's pickup address
     private String deliveryAddress;
     private LocalDateTime sellerConfirmedAt;
     private LocalDateTime adminReviewedAt;
@@ -41,7 +42,7 @@ public class OrderResponse {
         private Integer userId;
         private String email;
         private String fullName;
-        private String phone;  // ✅ Thêm phone
+        private String phone;
     }
     
     @Data
@@ -52,6 +53,7 @@ public class OrderResponse {
         private Integer userId;
         private String email;
         private String fullName;
+        private String phone;
     }
     
     @Data

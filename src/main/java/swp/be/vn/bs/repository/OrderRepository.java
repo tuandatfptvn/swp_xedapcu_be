@@ -49,6 +49,17 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findDeliveryTasksByInspector(@Param("inspectorId") Integer inspectorId);
     
     /**
+     * Lấy orders theo inspector ID và statuses
+     * (Used by getMyDeliveryTasks)
+     */
+    @Query("SELECT o FROM Order o WHERE o.assignedInspector.userId = :inspectorId " +
+           "AND o.status IN :statuses ORDER BY o.createdAt DESC")
+    List<Order> findByAssignedInspector_UserIdAndStatusIn(
+            @Param("inspectorId") Integer inspectorId, 
+            @Param("statuses") List<OrderStatus> statuses
+    );
+    
+    /**
      * Lấy orders theo delivery workflow statuses
      * Bao gồm: PENDING_SELLER_CONFIRMATION, PENDING_ADMIN_REVIEW, ASSIGNED_TO_INSPECTOR, IN_DELIVERY
      */

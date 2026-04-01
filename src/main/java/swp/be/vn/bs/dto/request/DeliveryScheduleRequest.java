@@ -6,5 +6,6 @@ import java.time.LocalDateTime;
 @Data
 public class DeliveryScheduleRequest {
     private LocalDateTime deliveryTime;
-    private String deliveryAddress;
+    private String pickupAddress;      // ✅ Seller's pickup address
+    private String deliveryAddress;    // Buyer's delivery address
 }

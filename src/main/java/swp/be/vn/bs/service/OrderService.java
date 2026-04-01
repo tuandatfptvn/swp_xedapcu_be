@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swp.be.vn.bs.dto.response.OrderResponse;
+import swp.be.vn.bs.dto.request.DeliveryScheduleRequest;
 import swp.be.vn.bs.entity.*;
 import swp.be.vn.bs.repository.DeliverySessionRepository;
 import swp.be.vn.bs.repository.OrderRepository;
@@ -371,13 +372,14 @@ public class OrderService {
                 .userId(order.getBuyer().getUserId())
                 .email(order.getBuyer().getEmail())
                 .fullName(order.getBuyer().getFullName())
-                .phone(order.getBuyer().getPhone())  // ✅ Thêm phone
+                .phone(order.getBuyer().getPhone())
                 .build();
         
         OrderResponse.SellerInfo sellerInfo = OrderResponse.SellerInfo.builder()
                 .userId(post.getSeller().getUserId())
                 .email(post.getSeller().getEmail())
                 .fullName(post.getSeller().getFullName())
+                .phone(post.getSeller().getPhone())
                 .build();
         
         OrderResponse.InspectorInfo inspectorInfo = null;
@@ -430,6 +432,7 @@ public class OrderService {
                 .status(order.getStatus())
                 .createdAt(order.getCreatedAt())
                 .expiresAt(expiresAt)
+                .pickupAddress(order.getPickupAddress())
                 .deliveryAddress(order.getDeliveryAddress())
                 .sellerConfirmedAt(order.getSellerConfirmedAt())
                 .adminReviewedAt(order.getAdminReviewedAt())
@@ -538,10 +541,62 @@ public class OrderService {
     }
 
     /**
+     * Seller schedule delivery with pickup address
+     */
+    @Transactional
+    public OrderResponse scheduleDelivery(Integer orderId, DeliveryScheduleRequest request, String sellerEmail) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        // Verify seller ownership
+        if (!order.getPost().getSeller().getEmail().equals(sellerEmail)) {
+            throw new RuntimeException("Only seller can schedule delivery");
+        }
+
+        // Validate request
+        if (request.getPickupAddress() == null || request.getPickupAddress().trim().isEmpty()) {
+            throw new RuntimeException("Pickup address is required");
+        }
+        if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().isEmpty()) {
+            throw new RuntimeException("Delivery address is required");
+        }
+        if (request.getDeliveryTime() == null) {
+            throw new RuntimeException("Delivery time is required");
+        }
+
+        // Check order status
+        if (order.getStatus() != OrderStatus.DEPOSIT_PAID) {
+            throw new RuntimeException("Order must be in DEPOSIT_PAID status to schedule delivery");
+        }
+
+        // Update order with addresses
+        order.setPickupAddress(request.getPickupAddress());
+        order.setDeliveryAddress(request.getDeliveryAddress());
+        order.setStatus(OrderStatus.PENDING_SELLER_CONFIRMATION);
+        order.setSellerConfirmedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // Create or update delivery session
+        DeliverySession session = order.getDeliverySession();
+        if (session == null) {
+            session = new DeliverySession();
+            session.setOrder(order);
+        }
+        session.setLocation(request.getPickupAddress());  // Set pickup location
+        session.setDeliveryDate(request.getDeliveryTime().toLocalDate());
+        session.setStartTime(request.getDeliveryTime().toLocalTime());
+        session.setStatus(DeliveryStatus.PENDING_INSPECTOR_ASSIGNMENT);
+        session.setAssignedAt(LocalDateTime.now());
+        deliverySessionRepository.save(session);
+
+        return mapToResponse(order);
+    }
+
+    /**
      * Seller confirm delivery address
      */
     @Transactional
-    public OrderResponse sellerConfirmDelivery(Integer orderId, String sellerEmail) {
+    public OrderResponse sellerConfirmDelivery(Integer orderId, DeliveryScheduleRequest request, String sellerEmail) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
@@ -550,21 +605,41 @@ public class OrderService {
             throw new RuntimeException("Only seller can confirm delivery");
         }
 
+        // Validate request
+        if (request.getPickupAddress() == null || request.getPickupAddress().trim().isEmpty()) {
+            throw new RuntimeException("Pickup address is required");
+        }
+        if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().isEmpty()) {
+            throw new RuntimeException("Delivery address is required");
+        }
+        if (request.getDeliveryTime() == null) {
+            throw new RuntimeException("Delivery time is required");
+        }
+
         // Check order status
         if (order.getStatus() != OrderStatus.DEPOSIT_PAID) {
             throw new RuntimeException("Order must be in DEPOSIT_PAID status to confirm delivery");
         }
 
-        // Update order status
+        // Update order with addresses
+        order.setPickupAddress(request.getPickupAddress());
+        order.setDeliveryAddress(request.getDeliveryAddress());
         order.setStatus(OrderStatus.PENDING_SELLER_CONFIRMATION);
         order.setSellerConfirmedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // Update delivery session status
-        deliverySessionRepository.findByOrder_OrderId(orderId).ifPresent(delivery -> {
-            delivery.setStatus(DeliveryStatus.PENDING_INSPECTOR_ASSIGNMENT);
-            deliverySessionRepository.save(delivery);
-        });
+        // Create or update delivery session
+        DeliverySession session = order.getDeliverySession();
+        if (session == null) {
+            session = new DeliverySession();
+            session.setOrder(order);
+        }
+        session.setLocation(request.getPickupAddress());  // Set pickup location
+        session.setDeliveryDate(request.getDeliveryTime().toLocalDate());
+        session.setStartTime(request.getDeliveryTime().toLocalTime());
+        session.setStatus(DeliveryStatus.PENDING_INSPECTOR_ASSIGNMENT);
+        session.setAssignedAt(LocalDateTime.now());
+        deliverySessionRepository.save(session);
 
         return mapToResponse(order);
     }
@@ -695,12 +770,15 @@ public class OrderService {
             throw new RuntimeException("User is not an inspector");
         }
 
-        // Get all orders assigned to this inspector (ASSIGNED_TO_INSPECTOR or IN_DELIVERY)
-        List<Order> orders = orderRepository.findAll().stream()
-                .filter(o -> o.getAssignedInspector() != null)
-                .filter(o -> o.getAssignedInspector().getUserId().equals(inspector.getUserId()))
-                .filter(o -> o.getStatus() == OrderStatus.ASSIGNED_TO_INSPECTOR || o.getStatus() == OrderStatus.IN_DELIVERY)
-                .collect(Collectors.toList());
+        // Get delivery tasks using optimized custom query
+        List<OrderStatus> statuses = List.of(
+                OrderStatus.ASSIGNED_TO_INSPECTOR, 
+                OrderStatus.IN_DELIVERY
+        );
+        List<Order> orders = orderRepository.findByAssignedInspector_UserIdAndStatusIn(
+                inspector.getUserId(), 
+                statuses
+        );
 
         return orders.stream()
                 .map(this::mapToResponse)

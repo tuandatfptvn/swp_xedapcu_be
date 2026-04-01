@@ -47,6 +47,9 @@ public class Order {
     @Column(name = "delivery_address", length = 500)
     private String deliveryAddress;
     
+    @Column(name = "pickup_address", length = 500)
+    private String pickupAddress;  // ✅ Seller's pickup address
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_inspector_id")
     private User assignedInspector;

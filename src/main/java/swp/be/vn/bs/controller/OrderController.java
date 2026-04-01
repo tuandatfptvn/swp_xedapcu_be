@@ -210,10 +210,11 @@ public class OrderController {
     @PutMapping("/{orderId}/seller-confirm-delivery")
     public ResponseEntity<?> sellerConfirmDelivery(
             @PathVariable Integer orderId,
+            @RequestBody DeliveryScheduleRequest request,
             Authentication authentication) {
         try {
             String sellerEmail = authentication.getName();
-            OrderResponse response = orderService.sellerConfirmDelivery(orderId, sellerEmail);
+            OrderResponse response = orderService.sellerConfirmDelivery(orderId, request, sellerEmail);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
