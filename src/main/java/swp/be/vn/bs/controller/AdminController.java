@@ -463,13 +463,24 @@ public class AdminController {
     }
     /**
      * GET /api/admin/inspections/{inspectionId}/report
-     * Admin xem báo cáo kiểm định
+     * Admin xem báo cáo kiểm định theo inspection ID
      */
     @GetMapping("/inspections/{inspectionId}/report")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getInspectionReport(@PathVariable Integer inspectionId) {
         try {
             InspectionReportResponse report = inspectionService.getReport(inspectionId);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/bookings/{bookingId}/report")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getInspectionReportByBookingId(@PathVariable Integer bookingId) {
+        try {
+            InspectionReportResponse report = inspectionService.getReportByBookingId(bookingId);
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());

@@ -309,6 +309,13 @@ public class InspectionService {
         
         return mapReportToResponse(report);
     }
+
+    public InspectionReportResponse getReportByBookingId(Integer bookingId) {
+        InspectionReport report = reportRepository.findByInspection_Booking_BookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Report not found for booking ID: " + bookingId));
+        
+        return mapReportToResponse(report);
+    }
     
     /**
      * Lấy inspection history của post
