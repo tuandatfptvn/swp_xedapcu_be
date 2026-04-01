@@ -74,13 +74,14 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String token = jwtTokenProvider.generateTokenFromEmailRoleAndId(
                 user.getEmail(),
                 "ROLE_" + user.getRole().name(),
-                user.getUserId()
+                user.getUserId()  // ✅ Include userId in token
         );
         
-        String redirectUrl = String.format("%s%s?token=%s&email=%s&role=%s",
+        String redirectUrl = String.format("%s%s?token=%s&userId=%s&email=%s&role=%s",
                 frontendUrl,
                 redirectPath,
                 token,
+                user.getUserId(),  // ✅ Include userId in URL
                 user.getEmail(),
                 user.getRole().name()
         );
