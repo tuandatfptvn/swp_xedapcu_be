@@ -55,12 +55,17 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                     .provider("google")
                     .providerId(googleId)
                     .role(Role.BUYER)
+                    .isActive(true)  // New user is active by default
                     .build();
             user = userRepository.save(user);
             
             // Auto tạo wallet cho user mới
             walletService.getOrCreateWallet(user);
         } else {
+            if (user.getIsActive() != null && !user.getIsActive()) {
+                throw new RuntimeException("Account has been deactivated. Please contact support.");
+            }
+            
             user.setFullName(name);
             user.setPicture(picture);
             user.setProvider("google");

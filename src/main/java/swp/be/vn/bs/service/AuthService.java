@@ -68,13 +68,16 @@ public class AuthService {
     }
     
     public AuthResponse login(LoginRequest request) {
+        // Step 1: Check if user exists
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        Boolean isActive = user.getIsActive();
+        if (isActive == null || !isActive) {
+            throw new RuntimeException("Account has been deactivated. Please contact support.");
+        }
+        
         try {
-            User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("Invalid email or password"));
-            
-            if (user.getIsActive() != null && !user.getIsActive()) {
-                throw new RuntimeException("Account has been deactivated. Please contact support.");
-            }
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
@@ -83,6 +86,8 @@ public class AuthService {
             );
             
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            
+            // Step 4: Generate token
             String token = jwtTokenProvider.generateTokenFromEmailRoleAndId(
                     user.getEmail(),
                     "ROLE_" + user.getRole().name(),
@@ -97,6 +102,7 @@ public class AuthService {
                     .build();
                     
         } catch (Exception e) {
+            // Only catch authentication errors (wrong password)
             throw new RuntimeException("Invalid email or password");
         }
     }

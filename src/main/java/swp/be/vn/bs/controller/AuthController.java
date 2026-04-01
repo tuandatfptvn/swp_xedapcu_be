@@ -31,8 +31,11 @@ public class AuthController {
         try {
             AuthResponse response = authService.login(request);
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid email or password");
+            // Fallback for unexpected errors
+            return ResponseEntity.badRequest().body("An error occurred during login");
         }
     }
 }
