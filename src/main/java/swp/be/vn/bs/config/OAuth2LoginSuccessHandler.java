@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -62,8 +63,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             // Auto tạo wallet cho user mới
             walletService.getOrCreateWallet(user);
         } else {
-            if (user.getIsActive() != null && !user.getIsActive()) {
-                throw new RuntimeException("Account has been deactivated. Please contact support.");
+            // ✅ CHECK: Account đã bị deactivate không?
+            Boolean isActive = user.getIsActive();
+            if (isActive == null || !isActive) {
+                throw new DisabledException("Account has been deactivated. Please contact support.");
             }
             
             user.setFullName(name);
