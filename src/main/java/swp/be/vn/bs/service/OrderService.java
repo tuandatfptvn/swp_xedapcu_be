@@ -773,7 +773,8 @@ public class OrderService {
         // Get delivery tasks using optimized custom query
         List<OrderStatus> statuses = List.of(
                 OrderStatus.ASSIGNED_TO_INSPECTOR, 
-                OrderStatus.IN_DELIVERY
+                OrderStatus.IN_DELIVERY,
+                OrderStatus.COMPLETED
         );
         List<Order> orders = orderRepository.findByAssignedInspector_UserIdAndStatusIn(
                 inspector.getUserId(), 
