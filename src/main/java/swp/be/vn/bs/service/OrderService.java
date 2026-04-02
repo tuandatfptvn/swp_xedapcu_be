@@ -451,7 +451,9 @@ public class OrderService {
     public void reportBuyerNoShow(Integer orderId, String sellerEmail){
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
-        if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
+        if(order.getStatus() != OrderStatus.DEPOSIT_PAID && 
+           order.getStatus() != OrderStatus.IN_DELIVERY && 
+           order.getStatus() != OrderStatus.ASSIGNED_TO_INSPECTOR){
             throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
         }
 
@@ -459,11 +461,20 @@ public class OrderService {
         BigDecimal depositAmount = order.getDepositAmount();
 
         // Mở khóa và trừ tiền cọc của buyer
-        walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
+        // If locked → unlock and deduct, else → just deduct from balance
+        Wallet buyerWallet = walletService.getOrCreateWallet(buyer);
+        if (buyerWallet.getLockedBalance().compareTo(depositAmount) >= 0) {
+            // Nếu còn locked → unlock and deduct
+            walletService.unlockAndDeduct(buyer.getUserId(), depositAmount);
+        } else {
+            // Nếu không có locked (hoặc không đủ) → deduct trực tiếp từ balance
+            walletService.chargePayment(buyer.getUserId(), depositAmount, 
+                "Buyer no-show penalty for order #" + orderId);
+        }
         
         // PENALTY: Ghi nhận transaction type PENALTY cho buyer
         transactionService.createTransaction(
-            walletService.getOrCreateWallet(buyer),
+            buyerWallet,
             buyer,
             order,
             depositAmount.negate(),
@@ -507,11 +518,26 @@ public class OrderService {
         }
 
         User buyer = order.getBuyer();
-         User seller = order.getPost().getSeller();
-         BigDecimal depositAmount = order.getDepositAmount();
+        User seller = order.getPost().getSeller();
+        BigDecimal depositAmount = order.getDepositAmount();
 
-         // Hoan tra 100% tien co lai cho Buyer
-        walletService.unlockBalance(buyer.getUserId(), depositAmount);
+        // Hoan tra 100% tien co lai cho Buyer
+        // If locked → unlock, else → deposit trực tiếp
+        Wallet buyerWallet = walletService.getOrCreateWallet(buyer);
+        if (buyerWallet.getLockedBalance().compareTo(depositAmount) >= 0) {
+            // Nếu còn locked → unlock
+            walletService.unlockBalance(buyer.getUserId(), depositAmount);
+        } else {
+            // Nếu không có locked (hoặc không đủ) → deposit trực tiếp
+            walletService.deposit(buyer.getUserId(), depositAmount);
+        }
+        
+        // Ghi nhận transaction cho buyer
+        transactionService.createTransaction(
+            buyerWallet, buyer, order, depositAmount,
+            TransactionType.REFUND,
+            "Seller no-show refund for order #" + orderId
+        );
 
         // Ghi nhan vi pham cho seller
         violationService.recordViolation(seller, order, "SELLER_NO_SHOW", BigDecimal.ZERO);
