@@ -500,11 +500,13 @@ public class OrderService {
     public void reportSellerNoShow(Integer orderId, String buyerEmail){
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
-         if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
-             throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
-         }
+        if(order.getStatus() != OrderStatus.DEPOSIT_PAID && 
+           order.getStatus() != OrderStatus.IN_DELIVERY && 
+           order.getStatus() != OrderStatus.ASSIGNED_TO_INSPECTOR){
+            throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
+        }
 
-         User buyer = order.getBuyer();
+        User buyer = order.getBuyer();
          User seller = order.getPost().getSeller();
          BigDecimal depositAmount = order.getDepositAmount();
 
