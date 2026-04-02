@@ -451,11 +451,6 @@ public class OrderService {
     public void reportBuyerNoShow(Integer orderId, String sellerEmail){
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
-        if(!order.getPost().getSeller().getEmail().equals(sellerEmail)){
-          throw new RuntimeException("Only the seller of the post has the right to report a no-show buyer");
-
-        }
-
         if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
             throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
         }
@@ -504,10 +499,6 @@ public class OrderService {
     @Transactional
     public void reportSellerNoShow(Integer orderId, String buyerEmail){
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
-         if(!order.getBuyer().getEmail().equals(buyerEmail)){
-             throw  new RuntimeException("Only the buyer of the order has the right to report a no-show seller");
-
-         }
 
          if(order.getStatus() != OrderStatus.DEPOSIT_PAID && order.getStatus() != OrderStatus.IN_DELIVERY){
              throw new RuntimeException("Cannot report an order in status : " + order.getStatus());
