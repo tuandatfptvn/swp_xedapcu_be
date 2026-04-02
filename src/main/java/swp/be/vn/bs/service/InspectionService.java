@@ -339,6 +339,7 @@ public class InspectionService {
                 .userId(requester.getUserId())
                 .email(requester.getEmail())
                 .fullName(requester.getFullName())
+                .phone(requester.getPhone())  // ← THÊM MỚI
                 .build();
         
         InspectionBookingResponse.InspectorInfo inspectorInfo = null;
@@ -347,6 +348,7 @@ public class InspectionService {
                     .userId(booking.getInspector().getUserId())
                     .email(booking.getInspector().getEmail())
                     .fullName(booking.getInspector().getFullName())
+                    .phone(booking.getInspector().getPhone())  // ← THÊM MỚI
                     .build();
         }
         
@@ -362,6 +364,7 @@ public class InspectionService {
                 .createdAt(booking.getCreatedAt())
                 .requester(requesterInfo)
                 .inspector(inspectorInfo)
+                .sellerPhone(requester.getPhone())  // ← THÊM MỚI (seller phone)
                 .build();
     }
     

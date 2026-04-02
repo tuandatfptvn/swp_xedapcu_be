@@ -28,11 +28,14 @@ public class InspectionBookingResponse {
     private PaidBy paidBy;
     private LocalDateTime createdAt;
     
-    // Requester info (người yêu cầu kiểm định)
+    // Requester info (người yêu cầu kiểm định - thường là seller)
     private RequesterInfo requester;
     
     // Inspector info (người kiểm định)
     private InspectorInfo inspector;
+    
+    // Seller phone (for quick contact) ← THÊM MỚI
+    private String sellerPhone;
     
     @Data
     @Builder
@@ -42,6 +45,7 @@ public class InspectionBookingResponse {
         private Integer userId;
         private String email;
         private String fullName;
+        private String phone;  // ← THÊM MỚI
     }
     
     @Data
@@ -52,5 +56,6 @@ public class InspectionBookingResponse {
         private Integer userId;
         private String email;
         private String fullName;
+        private String phone;  // ← THÊM MỚI
     }
 }
